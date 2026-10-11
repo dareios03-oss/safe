@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Safe</title>
+<meta name="description" content="Safe: a private savings and investing tracker. Your data stays on your device.">
+<meta name="theme-color" content="#E8ECF7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#05060F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Safe">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="wall" aria-hidden="true">
+    <div class="orb" style="left:-90px;top:-70px;width:330px;height:330px;background:var(--o1)"></div>
+    <div class="orb" style="left:210px;top:170px;width:280px;height:280px;background:var(--o2)"></div>
+    <div class="orb" style="left:-70px;top:460px;width:300px;height:300px;background:var(--o3)"></div>
+    <div class="orb" style="left:220px;top:620px;width:260px;height:260px;background:var(--o4)"></div>
+  </div>
+  <main class="screen" id="screen"></main>
+  <nav class="tabs glass" id="tabs" aria-label="Main"></nav>
+  <div id="demotag" class="demotag glass" hidden>Demo</div>
+  <div id="layer"></div>
+</div>
+<noscript><p style="padding:24px">Safe needs JavaScript to run.</p></noscript>
+<script src="store.js"></script>
+<script src="app.js"></script>
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{});});}
+</script>
+</body>
+</html>

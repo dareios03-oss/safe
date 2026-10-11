@@ -1,0 +1,5 @@
+# Never commit personal data: backup files and exports stay on your device.
+Safe-backup-*.json
+*backup*.json
+*.backup
+.DS_Store
