@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.3";
+const VERSION="1.0.4";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -435,17 +435,26 @@ function placeLens(x){
 }
 let tdrag=null,tabClickBlock=0;
 const tabAt=x=>{let best=null,bd=1e9;tabs.querySelectorAll(".tab").forEach(b=>{const c=b.offsetLeft+b.offsetWidth/2,d=Math.abs(c-x);if(d<bd){bd=d;best=b;}});return best;};
-tabs.addEventListener("pointerdown",e=>{const r=tabs.getBoundingClientRect();tdrag={x0:e.clientX,moved:false,r,id:e.pointerId};});
+function magnify(x){tabs.querySelectorAll(".tab").forEach(b=>{const c=b.offsetLeft+b.offsetWidth/2,w=b.offsetWidth,k=x==null?0:Math.max(0,1-Math.abs(c-x)/w);
+  const sc=1+.22*k;b.querySelector("svg").style.transform=k?`scale(${sc}) translateY(${-2*k}px)`:"";b.querySelector("span").style.transform=k?`scale(${1+.08*k})`:"";b.classList.toggle("hover",k>.5);});}
+tabs.addEventListener("pointerdown",e=>{const r=tabs.getBoundingClientRect(),x=e.clientX-r.left;
+  tdrag={x0:e.clientX,lx:e.clientX,lt:e.timeStamp,moved:false,r,id:e.pointerId};
+  try{tabs.setPointerCapture(e.pointerId);}catch(_){}
+  tabs.classList.add("press");magnify(x);});
 tabs.addEventListener("pointermove",e=>{if(!tdrag)return;const x=e.clientX-tdrag.r.left;
-  if(!tdrag.moved&&Math.abs(e.clientX-tdrag.x0)<6)return;
-  if(!tdrag.moved){try{tabs.setPointerCapture(tdrag.id);}catch(_){}}tdrag.moved=true;tabs.classList.add("drag");placeLens(x);
-  const t=tabAt(x);tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("hover",b===t));});
-function endTabDrag(e,cancel){if(!tdrag)return;const d=tdrag;tdrag=null;tabs.classList.remove("drag");tabs.querySelectorAll(".tab.hover").forEach(b=>b.classList.remove("hover"));
-  if(!d.moved)return;tabClickBlock=Date.now();
+  if(!tdrag.moved&&Math.abs(e.clientX-tdrag.x0)<4)return;
+  tdrag.moved=true;tabs.classList.add("drag");placeLens(x);
+  const dt=Math.max(e.timeStamp-tdrag.lt,1),v=(e.clientX-tdrag.lx)/dt;tdrag.lx=e.clientX;tdrag.lt=e.timeStamp;
+  const st=Math.min(Math.abs(v)*.35,.32),lens=tabs.querySelector(".lens");lens.style.scale=`${1.14+st} ${1.18-st*.4}`;
+  magnify(x);});
+function endTabDrag(e,cancel){if(!tdrag)return;const d=tdrag;tdrag=null;
+  const lens=tabs.querySelector(".lens");lens.style.scale="";tabs.classList.remove("drag","press");magnify(null);
+  tabClickBlock=Date.now();
   if(cancel){placeLens();return;}
   const t=tabAt(e.clientX-d.r.left);if(t&&t.dataset.tab!==S.tab){close();S.tab=t.dataset.tab;render();}else placeLens();}
 tabs.addEventListener("pointerup",e=>endTabDrag(e,false));
 tabs.addEventListener("pointercancel",e=>endTabDrag(e,true));
+tabs.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
 window.addEventListener("resize",()=>placeLens());
 
 
