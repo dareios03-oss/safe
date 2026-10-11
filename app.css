@@ -58,6 +58,7 @@ button{cursor:pointer}
 .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:var(--oop)}
 .screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 56px) 20px calc(env(safe-area-inset-bottom,0px) + 120px);box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
 .screen>*,.sheet .inner>*{flex-shrink:0}
+.screen,.sheet .inner{overscroll-behavior-y:contain}
 .glass{background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);border:1px solid var(--gb);box-shadow:inset 0 1px 0 var(--ghi),0 14px 44px var(--gsh)}
 .card{border-radius:26px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
 .list{border-radius:24px;display:flex;flex-direction:column;overflow:hidden}
@@ -85,9 +86,11 @@ h1{margin:0;font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1
 .link{border:0;background:transparent;color:var(--accent);font-weight:600;font-size:15px;min-height:40px;padding:0 4px}
 .split{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:3px;background:var(--track)}
 .split>span{display:block;height:100%}
-.tabs{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);height:68px;border-radius:34px;display:flex;justify-content:space-around;align-items:center;padding:0 6px;z-index:5}
-.tab{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:62px;min-height:54px;border-radius:27px;font-size:10px;font-weight:600;color:var(--muted)}
-.tab[aria-current="page"]{background:var(--tabon);color:var(--accent);box-shadow:inset 0 1px 0 var(--ghi),0 4px 14px var(--gsh)}
+.tabs{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px)*.55 + 6px);height:62px;border-radius:31px;display:flex;justify-content:space-between;align-items:center;padding:0 5px;z-index:5;touch-action:none;-webkit-user-select:none;user-select:none}
+.tab{position:relative;z-index:1;flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;border-radius:26px;font-size:10px;font-weight:600;color:var(--muted);transition:color .2s}
+.tab[aria-current="page"],.tab.hover{color:var(--accent)}
+.lens{position:absolute;left:0;top:5px;height:52px;width:60px;border-radius:26px;background:var(--tabon);box-shadow:inset 0 1px 0 var(--ghi),0 4px 14px var(--gsh);z-index:0;pointer-events:none;transition:transform .42s cubic-bezier(.3,1.35,.5,1),width .3s ease,scale .2s ease}
+.tabs.drag .lens{transition:scale .2s ease;scale:1.08 1.12}
 .tab svg{width:24px;height:24px}
 input.val{border:0;background:transparent;text-align:right;width:120px;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;padding:0}
 input.val:focus{outline:none}
@@ -132,7 +135,7 @@ html{-webkit-tap-highlight-color:transparent}
 [data-act]{cursor:pointer;touch-action:manipulation;transition:transform .14s ease,opacity .14s ease,background-color .14s ease}
 [data-act]:active:not(:has([data-act]:active)){transform:scale(.97);opacity:.85}
 section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
-.tab:active{transform:scale(.92)}
+.tab:active{transform:none}
 .row[data-act]:active,.list>button[data-act]:active,.catrow[data-act]:active,.grow[data-act]:active{transform:none;opacity:1;background:var(--field)}
 .scrim:active,.switch:active{transform:none!important;opacity:1!important}
 .switch:active::after{width:44px}
@@ -166,7 +169,7 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 .sel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* Phone and Home Screen app: the frame is the whole screen, the page itself never scrolls (only the screens inside do). */
 @media (max-width:500px),(display-mode: standalone){
-  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
-  body{padding:0;background:var(--bg)}
+  html,body{background:var(--bg)}
+  body{padding:0}
   .frame{position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;min-height:0;border-radius:0;box-shadow:none}
 }

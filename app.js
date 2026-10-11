@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.1";
+const VERSION="1.0.2";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -414,10 +414,47 @@ function render(keepScroll){
   document.getElementById("demotag").hidden=!S.demo;
   const y=scr.scrollTop;
   scr.innerHTML=({home,checkin,history,goals,settings})[S.tab]();
-  tabs.innerHTML=TABS.map(([k,l])=>`<button class="tab" data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':""}>${IC[k]}<span>${l}</span></button>`).join("");
+  drawTabs();
   scr.scrollTop=keepScroll?y:0;
   persist();
 }
+
+/* ---------- tab bar with a sliding lens (tap a tab, or slide your finger along the bar) ---------- */
+function drawTabs(){
+  if(!tabs.querySelector(".lens")){
+    tabs.innerHTML=`<span class="lens" aria-hidden="true"></span>`+TABS.map(([k,l])=>`<button class="tab" data-act="tab" data-tab="${k}">${IC[k]}<span>${l}</span></button>`).join("");
+  }
+  tabs.querySelectorAll(".tab").forEach(b=>{if(b.dataset.tab===S.tab)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
+  placeLens();
+}
+function placeLens(x){
+  const lens=tabs.querySelector(".lens"),cur=tabs.querySelector(`.tab[data-tab="${S.tab}"]`);if(!lens||!cur)return;
+  const w=cur.offsetWidth;lens.style.width=w+"px";
+  const left=x==null?cur.offsetLeft:Math.min(Math.max(x-w/2,5),tabs.clientWidth-w-5);
+  lens.style.transform=`translateX(${left}px)`;
+}
+let tdrag=null,tabClickBlock=0;
+const tabAt=x=>{let best=null,bd=1e9;tabs.querySelectorAll(".tab").forEach(b=>{const c=b.offsetLeft+b.offsetWidth/2,d=Math.abs(c-x);if(d<bd){bd=d;best=b;}});return best;};
+tabs.addEventListener("pointerdown",e=>{const r=tabs.getBoundingClientRect();tdrag={x0:e.clientX,moved:false,r,id:e.pointerId};});
+tabs.addEventListener("pointermove",e=>{if(!tdrag)return;const x=e.clientX-tdrag.r.left;
+  if(!tdrag.moved&&Math.abs(e.clientX-tdrag.x0)<6)return;
+  if(!tdrag.moved){try{tabs.setPointerCapture(tdrag.id);}catch(_){}}tdrag.moved=true;tabs.classList.add("drag");placeLens(x);
+  const t=tabAt(x);tabs.querySelectorAll(".tab").forEach(b=>b.classList.toggle("hover",b===t));});
+function endTabDrag(e,cancel){if(!tdrag)return;const d=tdrag;tdrag=null;tabs.classList.remove("drag");tabs.querySelectorAll(".tab.hover").forEach(b=>b.classList.remove("hover"));
+  if(!d.moved)return;tabClickBlock=Date.now();
+  if(cancel){placeLens();return;}
+  const t=tabAt(e.clientX-d.r.left);if(t&&t.dataset.tab!==S.tab){close();S.tab=t.dataset.tab;render();}else placeLens();}
+tabs.addEventListener("pointerup",e=>endTabDrag(e,false));
+tabs.addEventListener("pointercancel",e=>endTabDrag(e,true));
+window.addEventListener("resize",()=>{placeLens();fitFrame();});
+
+/* iPhone Home Screen app: make the app exactly as tall as the screen (iOS reports a shorter window there) */
+function fitFrame(){
+  const f=document.getElementById("frame");
+  if(isStandalone()&&innerWidth<=500&&screen.height>innerHeight+10){f.style.height=screen.height+"px";f.style.bottom="auto";}
+  else{f.style.height="";f.style.bottom="";}
+}
+fitFrame();
 
 /* ---------- toast ---------- */
 let tt;
@@ -619,7 +656,7 @@ function shellFull(body,next,back){
   <div class="screen fscroll">${body}</div>
   <div class="foot">${next}${back}</div></div>`;
 }
-const isStandalone=()=>!!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
+function isStandalone(){return !!(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;}
 
 /* first launch */
 let FL=false;
@@ -800,7 +837,7 @@ document.getElementById("frame").addEventListener("click",e=>{
   switch(a){
     case "demo": if(!S.demo){REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});render(true);toast("Demo mode on · your numbers are hidden");}
       else{Object.assign(S,REAL,{demo:false,hkey:null});REAL=null;render(true);toast("Demo mode off · your numbers are back");}break;
-    case "tab": close();S.tab=t.dataset.tab;render();break;
+    case "tab": if(Date.now()-tabClickBlock<450)break;close();S.tab=t.dataset.tab;render();break;
     case "sheet": openSheet(null);break;
     case "edit": openSheet(+t.dataset.i);break;
     case "close": if(layer.querySelector(".full")&&layer.querySelector(".sheet.info")){layer.querySelectorAll(".full ~ .scrim,.sheet.info").forEach(x=>x.remove());break;}close();break;
