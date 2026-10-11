@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.2";
+const VERSION="1.0.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -446,15 +446,8 @@ function endTabDrag(e,cancel){if(!tdrag)return;const d=tdrag;tdrag=null;tabs.cla
   const t=tabAt(e.clientX-d.r.left);if(t&&t.dataset.tab!==S.tab){close();S.tab=t.dataset.tab;render();}else placeLens();}
 tabs.addEventListener("pointerup",e=>endTabDrag(e,false));
 tabs.addEventListener("pointercancel",e=>endTabDrag(e,true));
-window.addEventListener("resize",()=>{placeLens();fitFrame();});
+window.addEventListener("resize",()=>placeLens());
 
-/* iPhone Home Screen app: make the app exactly as tall as the screen (iOS reports a shorter window there) */
-function fitFrame(){
-  const f=document.getElementById("frame");
-  if(isStandalone()&&innerWidth<=500&&screen.height>innerHeight+10){f.style.height=screen.height+"px";f.style.bottom="auto";}
-  else{f.style.height="";f.style.bottom="";}
-}
-fitFrame();
 
 /* ---------- toast ---------- */
 let tt;
