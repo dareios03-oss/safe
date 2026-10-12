@@ -196,3 +196,5 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
   .backbtn{top:calc(env(safe-area-inset-top,0px) + 4px)}
   .full.hasback .fscroll{padding-top:calc(env(safe-area-inset-top,0px) + 54px)}
 }
+.radio{width:22px;height:22px;border-radius:11px;border:2px solid var(--soft);flex:none;box-sizing:border-box;margin-left:8px}
+.radio.on{border:7px solid var(--accent)}

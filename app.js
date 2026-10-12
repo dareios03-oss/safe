@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.6";
+const VERSION="1.1.7";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -103,7 +103,7 @@ function propCard(b){
     ${bar("With your equity",p.byEq,p.limit==="equity")}${bar("With your income",p.byInc,p.limit==="income")}
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:10px">
       <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Property savings</span><span class="num" style="font-size:15px">${chf(b.property)}</span></span>
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Safety reserve</span><span class="num" style="font-size:15px">−${fmt(p.reserve)}</span></span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Safety reserve</span><span class="num" style="font-size:15px">${p.reserve?"−"+fmt(p.reserve):"0"}</span></span>
       <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Equity needed (${S.equity}%)</span><span class="num" style="font-size:15px">${chf(p.need)}</span></span>
     </div>
     <span class="muted" style="font-size:13px">At this price: about ${chf(p.cost)}/month housing costs${p.inc?` · max. ${fmtPct(p.pp.share)} of your income`:""} · tap to adjust</span>
@@ -800,7 +800,7 @@ function openSetup(){
   const toK=hist?ym(S.months[0].y,S.months[0].m):ym(S.today.y,S.today.m);
   const jan=ym(S.today.y,1);
   let fromK=hist?toK-12:(jan<toK?jan:toK-12);
-  SU={step:0,fromK,toK,hist,plan:{},start:Object.assign({},S.start),vals:{}};
+  SU={step:0,fromK:hist?fromK:toK,toK,hist,mode:hist?"past":"today",pastFrom:fromK,plan:{},start:Object.assign({},S.start),vals:{}};
   fixPlan();drawSetup();
 }
 function fixPlan(){const ys=setupYears();ys.forEach(y=>{if(!SU.plan[y])SU.plan[y]=y<S.today.y&&setupMonths(y).length===12?"yearly":"months";});}
@@ -828,19 +828,22 @@ function drawSetup(){
     const yr=y=>{const c=setupMonths(y).length,a=MS[kYM(setupMonths(y)[0]).m-1],z=MS[kYM(setupMonths(y)[c-1]).m-1];return `<div class="row" style="min-height:64px"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${y}</span><span class="muted" style="font-size:13px">${c} month${c===1?"":"s"} · ${a}${c>1?" – "+z:""}${SU.plan[y]==="yearly"?" · as monthly average":""}</span></span><div class="seg" role="group" aria-label="${y} input"><button data-act="plan" data-y="${y}" data-v="months" aria-pressed="${SU.plan[y]==="months"}">Months</button><button data-act="plan" data-y="${y}" data-v="yearly" aria-pressed="${SU.plan[y]==="yearly"}">Yearly</button></div></div>`;};
     const ys=setupYears(),cnt=steps.filter(x=>x.k==="month").length,yc=steps.filter(x=>x.k==="year").length;
     layer.innerHTML=shellFull(`<div style="height:62px"><div style="transform:scale(1.5);transform-origin:left top;width:40px">${appIcon}</div></div>
-    <div class="eyebrow">${SU.hist?"History":"Set up Safe"}</div><h1 style="font-size:30px">${SU.hist?"Add older months":"Add your past months"}</h1>
-    <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${SU.hist?`Your history starts in ${kName(SU.toK)}. Pick how far back to go. Months you already have stay as they are.`:"Start your history further back, or start with this month. Use exact months where you know them, yearly totals where you don't."}</p>
+    <div class="eyebrow">${SU.hist?"History":"Set up Safe"}</div><h1 style="font-size:30px">${SU.hist?"Add older months":"Set up your starting point"}</h1>
+    <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${SU.hist?`Your history starts in ${kName(SU.toK)}. Pick how far back to go. Months you already have stay as they are.`:"Start simply with what you have today, or add past months for a longer history."}</p>
     ${FL?`<div class="list glass"><button class="row" data-act="flrestore" style="border:0;background:transparent;text-align:left;width:100%"><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-weight:600;color:var(--accent)">Restore from a backup</span><span class="muted" style="font-size:13px">Had Safe before? Pick your backup file.</span></span><span style="color:var(--accent)" aria-hidden="true">›</span></button></div>`:""}
-    <div class="list glass"><div class="row" style="min-height:52px"><span style="flex:1">Start tracking from</span></div><div class="row" style="min-height:58px;gap:8px">${sel("su-fm",months,fy.m,"Start month")}${sel("su-fy",years,fy.y,"Start year")}</div></div>
+    ${SU.hist?"":(()=>{const opt=(v,t,s)=>`<button class="row" data-act="sumode" data-v="${v}" role="radio" aria-checked="${SU.mode===v}" style="border:0;background:transparent;text-align:left;width:100%;align-items:center"><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span class="radio${SU.mode===v?" on":""}" aria-hidden="true"></span></button>`;
+      return `<div class="section">How do you want to start?</div><div class="list glass" role="radiogroup" aria-label="How do you want to start">${opt("today","Start with today's balances","Enter roughly what you have now. From "+kName(SU.toK)+" on, your check-ins track everything exactly.")}${opt("past","Add past months too","Months or yearly totals with income and split, for a longer history.")}</div>`;})()}
+    ${!SU.hist&&SU.mode==="today"?"":`<div class="list glass"><div class="row" style="min-height:52px"><span style="flex:1">Start tracking from</span></div><div class="row" style="min-height:58px;gap:8px">${sel("su-fm",months,fy.m,"Start month")}${sel("su-fy",years,fy.y,"Start year")}</div></div>`}
     ${ys.length?`<div class="section">How do you know each year?</div><div class="list glass">${ys.map(yr).join("")}</div>
     <p class="note">You'll enter your balances once, then ${yc?yc+" yearly total"+(yc>1?"s":"")+(cnt?" and ":""):""}${cnt?cnt+" month"+(cnt===1?"":"s"):""}. A yearly total is shown as the monthly average.</p>`
-    :`<p class="note">You start with ${kName(SU.toK)}. You'll enter your current balances once, then do your first check-in.</p>`}`,
+    :`<p class="note">You'll enter your current balances once, then do your first check-in for ${kName(SU.toK)}.</p>`}`,
     `<button class="btn" data-act="snext" ${SU.hist&&n<=0?"disabled":""}>Continue</button>`,"",['data-act="sclose"',FL?(S.setupDone?"Back":"Demo"):"History"]);
   }else if(s.k==="bal"){
     const st=SU.start;
-    layer.innerHTML=shellFull(`${bar}<div class="eyebrow">Starting balances</div><h1 style="font-size:30px">Before ${kName(SU.fromK)}</h1>
-    <p class="muted" style="margin:0;font-size:15px;line-height:1.4">What you had at the end of ${kName(SU.fromK-1)}. Leave anything you don't have at 0.</p>
-    <div class="list glass">${moneyRow("su-bc","Cash savings",st.cash,"var(--cash)")}${moneyRow("su-bv","Stock portfolio value",st.stockValue,"var(--stocks)")}${moneyRow("su-bp","Stocks paid in so far",st.paid,"var(--stocks)","Your own money, without gains")}${moneyRow("su-bpr","Property savings",st.property,"var(--prop)")}${moneyRow("su-bh","Holiday budget",st.holiday,"var(--hol)")}</div>
+    const today=!SU.hist&&SU.fromK===SU.toK;
+    layer.innerHTML=shellFull(`${bar}<div class="eyebrow">${today?"Your balances today":"Starting balances"}</div><h1 style="font-size:30px">${today?"What you have now":"Before "+kName(SU.fromK)}</h1>
+    <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${today?`A rough overview is fine. From ${kName(SU.toK)} on, your monthly check-ins track income, savings and the split exactly.`:`What you had at the end of ${kName(SU.fromK-1)}. Leave anything you don't have at 0.`}</p>
+    <div class="list glass">${moneyRow("su-bc","Cash savings",st.cash,"var(--cash)")}${moneyRow("su-bv","Stock portfolio value",st.stockValue,"var(--stocks)")}${moneyRow("su-bp","Stocks paid in so far",st.paid,"var(--stocks)","Everything you invested since opening the depot, without gains")}${moneyRow("su-bpr","Property savings",st.property,"var(--prop)")}${moneyRow("su-bh","Holiday budget",st.holiday,"var(--hol)")}</div>
     <p class="note">Not sure what you paid into stocks? Use the portfolio value; gains then start counting from here.</p>`,
     nav(nextLabel()),"",BK);
   }else{
@@ -955,6 +958,7 @@ document.getElementById("frame").addEventListener("click",e=>{
       if(s==="no"){finishFirst(false);break;}
       drawFirst(s);break;}
     case "setup": {const keep=FL;openSetup();FL=keep;break;}
+    case "sumode": SU.mode=t.dataset.v;if(SU.mode==="today")SU.fromK=SU.toK;else SU.fromK=SU.pastFrom<SU.toK?SU.pastFrom:SU.toK-9;fixPlan();drawSetup();break;
     case "plan": SU.plan[t.dataset.y]=t.dataset.v;SU.step=0;drawSetup();break;
     case "snext": {readSetup();const n=setupSteps().length-1;if(SU.step>=n){endSetup(true);}else{SU.step++;drawSetup();}break;}
     case "sback": readSetup();SU.step=Math.max(0,SU.step-1);drawSetup();break;
@@ -965,7 +969,7 @@ document.getElementById("frame").addEventListener("click",e=>{
 function step(d){const ps=periods(S.hmode);if(!ps.length)return;let pi=ps.findIndex(p=>p.k===S.hkey);pi=Math.min(Math.max(pi+d,0),ps.length-1);S.hkey=ps[pi].k;render(true);}
 document.getElementById("frame").addEventListener("change",e=>{
   const su=e.target.dataset.su;
-  if(su&&SU){const fm=+document.getElementById("su-fm").value,fy=+document.getElementById("su-fy").value;let k=ym(fy,fm);const maxK=SU.hist?SU.toK-1:SU.toK;if(k>maxK)k=maxK;SU.fromK=k;fixPlan();drawSetup();return;}
+  if(su&&SU){const fm=+document.getElementById("su-fm").value,fy=+document.getElementById("su-fy").value;let k=ym(fy,fm);const maxK=SU.hist?SU.toK-1:SU.toK;if(k>maxK)k=maxK;SU.fromK=k;SU.pastFrom=k;fixPlan();drawSetup();return;}
 });
 /* settings and targets save while typing (iOS may skip "change" after live formatting) */
 let setDirty=false;
