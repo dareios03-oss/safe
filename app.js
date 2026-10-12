@@ -7,14 +7,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.3";
+const VERSION="1.1.4";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -84,12 +84,15 @@ const IC={
 const appIcon='<svg class="appicon" viewBox="0 0 160 160" aria-hidden="true"><defs><clipPath id="sfiDc"><rect width="160" height="160" rx="36"/></clipPath></defs><g clip-path="url(#sfiDc)"><defs><filter id="sfiDb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter><mask id="sfiDm"><g transform="translate(80,80) scale(.84) translate(-80,-75)"><circle cx="80" cy="75" r="50" fill="none" stroke="#fff" stroke-width="13"/><path d="M80 75V47M80 75L104 89M80 75L56 89" stroke="#fff" stroke-width="12" stroke-linecap="round" fill="none"/><circle cx="80" cy="47" r="10" fill="#fff"/><circle cx="104" cy="89" r="10" fill="#fff"/><circle cx="56" cy="89" r="10" fill="#fff"/><circle cx="80" cy="75" r="16" fill="#fff"/></g></mask></defs><rect width="160" height="160" fill="#FFFFFF"/><g mask="url(#sfiDm)"><g filter="url(#sfiDb)"><circle cx="35" cy="30" r="62" fill="#6E8BFF"/><circle cx="135" cy="45" r="55" fill="#C77DFF"/><circle cx="35" cy="130" r="55" fill="#FFB27A"/><circle cx="130" cy="130" r="52" fill="#46D6C4"/></g></g></g><rect x=".5" y=".5" width="159" height="159" rx="35.5" fill="none" stroke="rgba(11,16,32,.08)"/></svg>';
 
 /* ---------- first property: equity and income limit ---------- */
+const fmtPct=v=>(Math.round(v*10)/10).toString().replace(/\.0$/,"")+"%";
+const PPDEF={income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3};
 function propCalc(b){
-  const e=S.equity/100,reserve=S.reserve||0,usable=Math.max(b.property-reserve,0),byEq=usable/e;
-  const l12=S.months.slice(-12),inc=l12.length?l12.reduce((a,r)=>a+r.income,0)/l12.length*12:0;
-  const rate=.05*(1-e)+.01+Math.max(0,(1-e)-2/3)/15;   // imputed interest 5% on the mortgage + 1% upkeep + amortisation to 2/3 in 15 years
-  const byInc=inc?Math.floor(inc/3/rate/1000)*1000:0,max=inc?Math.min(byEq,byInc):byEq,limit=!inc?"equity":byEq<=byInc?"equity":"income";
-  return {e,reserve,usable,byEq,byInc,inc,rate,max,limit,need:max*e,cost:max*rate/12};
+  const pp=Object.assign({},PPDEF,S.pp||{});
+  const e=S.equity/100,reserve=S.reserve||0,usable=Math.max(b.property-reserve,0),byEq=e>0?usable/e:0;
+  const l12=S.months.slice(-12),incAuto=l12.length?l12.reduce((a,r)=>a+r.income,0)/l12.length*12:0,inc=pp.income>0?pp.income:incAuto;
+  const rate=pp.rate/100*(1-e)+pp.upkeep/100+Math.max(0,(1-e)-pp.amortTo/100)/Math.max(pp.amortYears,1);
+  const byInc=inc&&rate>0?Math.floor(inc*pp.share/100/rate/1000)*1000:0,max=inc?Math.min(byEq,byInc):byEq,limit=!inc?"equity":byEq<=byInc?"equity":"income";
+  return {e,pp,reserve,usable,byEq,byInc,inc,incAuto,manualInc:pp.income>0,rate,max,limit,need:max*e,cost:max*rate/12};
 }
 function propCard(b){
   const p=propCalc(b),top=Math.max(p.byEq,p.byInc,1);
@@ -103,10 +106,26 @@ function propCard(b){
       <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Safety reserve</span><span class="num" style="font-size:15px">−${fmt(p.reserve)}</span></span>
       <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Equity needed (${S.equity}%)</span><span class="num" style="font-size:15px">${chf(p.need)}</span></span>
     </div>
-    <span class="muted" style="font-size:13px">At this price: about ${chf(p.cost)}/month housing costs${p.inc?` · max. 1/3 of your income`:""}</span>
+    <span class="muted" style="font-size:13px">At this price: about ${chf(p.cost)}/month housing costs${p.inc?` · max. ${fmtPct(p.pp.share)} of your income`:""} · tap to adjust</span>
   </section>`;
 }
 
+function propResults(){
+  const b=bal(L()),p=propCalc(b);
+  return `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px"><span class="big">${chf(p.max)}</span><span class="muted">maximum price · limited by your ${p.limit}</span></div>
+  ${(()=>{const kv=rows=>`<div class="field">${rows.map(x=>`<div class="kv"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
+  return kv([["Property savings",chf(b.property)],["− Safety reserve",chf(p.reserve)],["= Usable equity",chf(p.usable)],[`Price with ${fmtPct(S.equity)} down payment`,chf(p.byEq)],[`Income per year${p.manualInc?" (entered)":" (check-ins)"}`,p.inc?chf(p.inc):"–"],["Price your income allows",p.inc?chf(p.byInc):"–"],["Mortgage at max. price",chf(p.max-p.need)],["Housing costs (calculated)",chf(p.cost)+"/month"]]);})()}`;
+}
+function wireProp(){
+  const res=document.getElementById("pp-res");if(!res)return;res.innerHTML=propResults();
+  const sh=res.closest(".sheet");
+  sh.addEventListener("input",e=>{const id=e.target.dataset.pp;if(!id)return;const v=parse(e.target.value);
+    if(id==="eq"){if(v>0&&v<=100)S.equity=v;}else if(id==="reserve"){S.reserve=Math.max(v,0);}
+    else{S.pp=Object.assign({},PPDEF,S.pp||{});if(id==="income")S.pp.income=e.target.value.trim()===""?0:Math.max(v,0);else if(v>=0)S.pp[id]=v;}
+    res.innerHTML=propResults();});
+  sh.addEventListener("change",()=>{render(true);});
+  sh.addEventListener("focusin",e=>{if(e.target.matches("input"))setTimeout(()=>e.target.select(),0);});
+}
 /* ---------- views ---------- */
 function home(){
   const i=L(),b=bal(i),p=bal(i-1),has=!!cur(),r=cur()||blank();
@@ -375,17 +394,16 @@ function openInfo(k,a){
     <p class="explain">The projection adds your average monthly saving and grows everything at the expected return, month by month, until it reaches your goal. It's a rough guide, not a forecast: markets and your savings will vary.</p>`;
     action=`<button class="btn" data-act="tab" data-tab="settings">Change goal or return</button>`;
   }else if(k==="prop"){
-    const p=propCalc(b);
     title="First property";
-    body=`<span class="big">${chf(p.max)}</span><span class="muted">maximum price · limited by your ${p.limit}</span>
-    <div class="section" style="padding-left:4px">Your equity</div>
-    ${kv([["Property savings",chf(b.property)],["Safety reserve you keep","−"+chf(p.reserve)],["Usable equity",chf(p.usable)],[`Max. price with ${S.equity}% equity`,chf(p.byEq)]])}
-    <div class="section" style="padding-left:4px">Your income</div>
-    ${kv([["Income per year (avg. of last 12 months × 12)",p.inc?chf(p.inc):"no data yet"],["Max. housing costs (1/3)",p.inc?chf(p.inc/3)+"/year":"–"],["Max. price your income allows",p.inc?chf(p.byInc):"–"]])}
-    <div class="section" style="padding-left:4px">At ${chf(p.max)}</div>
-    ${kv([["Equity needed",chf(p.need)],["Mortgage",chf(p.max-p.need)],["Housing costs (calculated)",chf(p.cost)+"/month"]])}
-    <p class="explain">Swiss banks check two things. Equity: at least ${S.equity}% of the price must be your own money; Safe keeps your safety reserve aside first. Income: calculated costs of 5% interest on the mortgage, 1% upkeep and amortisation down to two thirds of the price within 15 years must stay below one third of your income. Banks use gross income; Safe uses the income you enter in your check-ins. Purchase costs (notary, land registry) are not included.</p>`;
-    action=`<button class="btn" data-act="tab" data-tab="settings">Change equity share or reserve</button>`;
+    const f=(id,label,val,suf,hint)=>`<label class="row" for="pp-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:""}</span><input class="val" id="pp-${id}" data-pp="${id}" inputmode="decimal" value="${val}" placeholder="${id==="income"?fmt(propCalc(b).incAuto):""}" style="width:96px">${suf?`<span class="muted" style="font-size:15px">${suf}</span>`:""}</label>`;
+    const pp=Object.assign({},PPDEF,S.pp||{});
+    body=`<div id="pp-res"></div>
+    <div class="section" style="padding-left:4px">Your numbers</div>
+    <div class="field">${f("eq","Down payment (equity)",S.equity,"%")}${f("reserve","Safety reserve",fmt(S.reserve||0),"CHF","Kept aside, not used for the purchase")}${f("income","Income per year",pp.income>0?fmt(pp.income):"","CHF","Empty = from your check-ins · banks use gross")}</div>
+    <div class="section" style="padding-left:4px">Bank assumptions</div>
+    <div class="field">${f("rate","Interest rate used",pp.rate,"%","Banks calculate with about 5%")}${f("upkeep","Upkeep per year",pp.upkeep,"%","Of the price")}${f("amortTo","Pay mortgage down to",pp.amortTo,"%","Of the price, usually two thirds")}${f("amortYears","Within",pp.amortYears,"years")}${f("share","Max. share of income",pp.share,"%","Usually one third")}</div>
+    <p class="explain">Changes apply right away. Property savings come from your check-ins. Notary and land registry costs are not included.</p>`;
+    action=`<button class="btn" data-act="propreset">Reset to bank standard</button>`;
   }else if(k==="hol"){
     const per=avgOf("holiday",6);
     title="Holiday budget";
@@ -428,6 +446,7 @@ function openInfo(k,a){
   <div class="inner"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
   if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
   bindSwipe([...layer.querySelectorAll(".sheet")].pop());
+  if(k==="prop")wireProp();
 }
 
 /* ---------- render ---------- */
@@ -617,7 +636,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","ret","emergency"];
+const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","ret","emergency"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
@@ -902,6 +921,7 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "edit": openSheet(+t.dataset.i);break;
     case "close": if(t.classList.contains("scrim")&&layer.querySelector(".sheet")){dismissSheet();break;}if(layer.querySelector(".full")&&layer.querySelector(".sheet.info")){layer.querySelectorAll(".full ~ .scrim,.sheet.info").forEach(x=>x.remove());break;}close();break;
     case "dismiss": dismissSheet();break;
+    case "propreset": S.equity=20;S.reserve=0;S.pp=Object.assign({},PPDEF);render(true);openInfo("prop");toast("Back to bank standard");break;
     case "discard": sheetDirty=false;close();break;
     case "keep": layer.querySelectorAll(".askbox,.ascrim").forEach(x=>x.remove());break;
     case "info": openInfo(t.dataset.k,t.dataset.a);break;
