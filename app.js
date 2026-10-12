@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.7";
+const VERSION="1.1.8";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -132,7 +132,9 @@ function home(){
   const delta=has?b.nw-p.nw:0, fiBase=b.fi, fiPct=fiBase/S.fi*100, rate=r.income?r.saved/r.income*100:0;
   const l6=S.months.slice(-6), avg=l6.length?l6.reduce((a,x)=>a+(x.income?x.saved/x.income:0),0)/l6.length*100:0;
   const circ=2*Math.PI*25, dash=Math.min(rate,100)/100*circ;
-  const cat=[{n:"Cash savings",v:b.cash,c:"var(--cash)",k:"cat",a:"cash"},{n:"Stocks",v:b.value,c:"var(--stocks)",sub:`paid in ${fmt(b.paid)} · market gains ${b.gain>=0?"+":"−"}${fmt(Math.abs(b.gain))}`,k:"cat",a:"stocks"},{n:"Property savings",v:b.property,c:"var(--prop)",k:"cat",a:"property"},{n:"Holiday budget",v:b.holiday,c:"var(--hol)",nofi:true,k:"cat",a:"holiday"}]
+  const ep=S.emergency>0?Math.min(Math.max(b.cash,0)/S.emergency,1):0;
+  const cashSub=S.emergency>0?`<span style="display:flex;flex-direction:column;gap:4px;margin-top:3px"><span class="muted" style="font-size:12px">${ep>=1?'<b style="color:var(--good)">✓ Emergency fund filled</b>':`Emergency fund ${Math.round(ep*100)}% · ${chf(S.emergency-b.cash)} to go`}</span><span style="height:4px;border-radius:2px;background:var(--track);overflow:hidden;max-width:180px"><span style="display:block;height:4px;width:${ep*100}%;background:${ep>=1?"var(--goodline)":"var(--cash)"}"></span></span></span>`:"";
+  const cat=[{n:"Cash savings",v:b.cash,c:"var(--cash)",k:"cat",a:"cash",subHtml:cashSub},{n:"Stocks · paid in",v:b.value,show:b.paid,c:"var(--stocks)",sub:`current value ${fmt(b.value)} (${b.gain>=0?"+":"−"}${fmt(Math.abs(b.gain))}) · volatile`,k:"cat",a:"stocks"},{n:"Property savings",v:b.property,c:"var(--prop)",k:"cat",a:"property"},{n:"Holiday budget",v:b.holiday,c:"var(--hol)",nofi:true,k:"cat",a:"holiday"}]
     .concat(S.pots.map(pt=>({n:esc(pt.name),v:b.pots[pt.id],c:pt.color,nofi:!pt.fi,k:"pot",a:pt.id})));
   const d=dueMonth();
   return `
@@ -147,9 +149,9 @@ function home(){
     <div class="split" aria-hidden="true">${cat.map(c=>`<span style="flex:${Math.max(c.v,0)};background:${c.c}"></span>`).join("")}</div>
     <div style="display:flex;flex-direction:column;gap:12px">${cat.map(c=>`
       <div class="catrow" data-act="info" data-k="${c.k}" data-a="${c.a}" role="button" tabindex="0" aria-label="${c.n} details"><span class="dot" style="background:${c.c};box-shadow:0 0 10px ${c.c}"></span>
-      <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:17px">${c.n}</span>${c.sub?`<span class="muted" style="font-size:12px">${c.sub}</span>`:""}</span>
+      <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:17px">${c.n}</span>${c.sub?`<span class="muted" style="font-size:12px">${c.sub}</span>`:""}${c.subHtml||""}</span>
       ${c.nofi?`<span class="pill" style="color:var(--muted);background:var(--field);border-color:var(--fieldb);align-self:center;font-size:11px">not in FI</span>`:""}
-      <span class="num" style="font-size:17px">${fmt(c.v)}</span></div>`).join("")}</div>
+      <span class="num" style="font-size:17px">${fmt(c.show!=null?c.show:c.v)}</span></div>`).join("")}</div>
   </section>
   <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
     <button class="card glass" data-act="tab" data-tab="history" style="text-align:left;flex-direction:row;align-items:center;gap:10px;padding:16px">
