@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.9";
+const VERSION="1.1.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -302,6 +302,7 @@ function settings(){
 }
 
 
+const XB=`<button type="button" class="xbtn glass" data-act="dismiss" aria-label="Close"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;
 /* ---------- info sheets ---------- */
 function mini(vals,labels,color,hi){
   const mx=Math.max(...vals.map(v=>Math.abs(v)),1);
@@ -405,8 +406,9 @@ function openInfo(k,a){
     body=`${kv([["Version",VERSION],["Months stored",String(S.months.length)],["Last backup",backupLabel()]])}<p class="explain">Safe keeps everything on this iPhone and works offline. Back up regularly: if the app is deleted, the data is gone unless you have a backup file.</p>`;
   }
   const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t"><span class="grab" aria-hidden="true"></span>
-  <div class="inner"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2><button class="link" data-act="close" style="font-size:17px">Done</button></div>${body}${action}</div></div>`;
-  if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;}
+  <div class="inner"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
+  if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
+  bindSwipe([...layer.querySelectorAll(".sheet")].pop());
 }
 
 /* ---------- render ---------- */
@@ -494,7 +496,7 @@ function openSheet(i){
   layer.innerHTML=`<div class="scrim" data-act="close"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><span class="grab" aria-hidden="true"></span>
   <form class="inner" id="ci" novalidate>
-    <div style="display:flex;align-items:center;justify-content:space-between"><button type="button" class="link" data-act="close" style="font-size:17px;font-weight:400;min-width:60px;text-align:left">Cancel</button><h2 id="sh-t" style="margin:0;font-size:17px;font-weight:700">${MONTHS[m-1]} ${isNew?"check-in":y}</h2><span style="min-width:60px"></span></div>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="sh-t" style="margin:0;font-size:17px;font-weight:700">${MONTHS[m-1]} ${isNew?"check-in":y}</h2>${XB}</div>
     ${late?`<p class="note" style="color:var(--warn);font-weight:600">Late check-in: use your numbers from the end of ${MONTHS[m-1]}.</p>`:""}
     ${r&&r.est?`<p class="note" style="color:var(--warn)">This month shows the average of the ${r.y} yearly total. Saving here replaces it with exact numbers.</p>`:""}
     <div class="field">
@@ -539,8 +541,9 @@ function openSheet(i){
     document.getElementById("f-stocks").setAttribute("aria-invalid",over?"true":"false");
     return {inc,sv,st,pr,ho,val,cash,pots,goal:g("f-goal")};
   };
-  f.addEventListener("input",calc);
+  f.addEventListener("input",()=>{sheetDirty=true;calc();});
   f.addEventListener("focusin",e=>{if(e.target.matches("input"))setTimeout(()=>e.target.select(),0)});
+  sheetDirty=false;bindSwipe(layer.querySelector(".sheet"));
   f.addEventListener("submit",e=>{e.preventDefault();const c=calc();if(c.cash<0||c.sv<=0||c.inc<=0)return;
     const rec={income:c.inc,saved:c.sv,stocks:c.st,property:c.pr,holiday:c.ho,cash:c.cash,stockValue:c.val,pots:c.pots,est:false};
     if(editI===null){S.months.push(Object.assign({y,m,goal:S.nextGoal||null},rec));S.nextGoal=c.goal;close();
@@ -550,6 +553,34 @@ function openSheet(i){
     else{Object.assign(S.months[editI],rec,{goal:c.goal||S.months[editI].goal});const name=`${MONTHS[S.months[editI].m-1]} ${S.months[editI].y}`;close();render(true);toast(`${name} updated`);}
   });
   calc();
+}
+/* ---------- closing sheets: swipe down, ✕, or tap outside ---------- */
+let sheetDirty=false;
+function bindSwipe(sh){
+  if(!sh)return;const inner=sh.querySelector(".inner");let y0=null,dy=0,t0=0,on=false;
+  sh.addEventListener("touchstart",e=>{if(e.touches.length!==1)return;y0=e.touches[0].clientY;t0=e.timeStamp;dy=0;on=false;},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(y0==null)return;const d=e.touches[0].clientY-y0;
+    if(!on){if(d>8&&(!inner||inner.scrollTop<=0||e.target.closest(".grab,.shead"))){on=true;sh.style.transition="none";sh.style.animation="none";}else if(Math.abs(d)>8){y0=null;return;}else return;}
+    dy=Math.max(0,d);e.preventDefault();sh.style.transform=`translateY(${dy}px)`;},{passive:false});
+  sh.addEventListener("touchend",e=>{if(!on){y0=null;return;}const v=dy/Math.max(e.timeStamp-t0,1);on=false;y0=null;
+    sh.style.transition="transform .25s ease";if(dy>110||v>.6)dismissSheet(false,sh);else sh.style.transform="";});
+  const g=sh.querySelector(".grab");if(g){g.addEventListener("pointerdown",e=>{if(e.pointerType==="touch")return;const sy=e.clientY;sh.style.transition="none";
+    const mv=ev=>{sh.style.transform=`translateY(${Math.max(0,ev.clientY-sy)}px)`;};
+    const up=ev=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);sh.style.transition="transform .25s ease";if(ev.clientY-sy>110)dismissSheet(false,sh);else sh.style.transform="";};
+    addEventListener("pointermove",mv);addEventListener("pointerup",up);});}
+}
+function dismissSheet(force,sh){
+  sh=sh||[...layer.querySelectorAll(".sheet")].pop();
+  if(!sh){if(!FL)close();return;}
+  const inFull=!!layer.querySelector(".full");
+  if(sheetDirty&&!force&&!sh.classList.contains("info")){sh.style.transform="";askDiscard();return;}
+  sh.style.transition="transform .22s ease";sh.style.animation="none";sh.style.transform="translateY(105%)";
+  const scrim=sh.previousElementSibling&&sh.previousElementSibling.classList.contains("scrim")?sh.previousElementSibling:null;if(scrim){scrim.style.transition="opacity .22s";scrim.style.opacity="0";}
+  setTimeout(()=>{if(inFull){sh.remove();if(scrim)scrim.remove();}else{sheetDirty=false;close();}},220);
+}
+function askDiscard(){
+  if(layer.querySelector(".askbox"))return;
+  layer.insertAdjacentHTML("beforeend",`<div class="ascrim" data-act="keep"></div><div class="askbox" role="alertdialog" aria-modal="true" aria-label="Discard changes?"><p class="muted" style="margin:6px 0 4px;text-align:center;font-size:13px">Your changes haven't been saved.</p><button class="btn danger" data-act="discard">Discard changes</button><button class="btn" data-act="keep">Keep editing</button></div>`);
 }
 function close(){layer.innerHTML="";FL=false;pending=null;}
 
@@ -617,7 +648,7 @@ function openGoalSheet(id){
   const pt=id?S.pots.find(p=>p.id===id):null;goalEdit=pt?pt.id:null;
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="g-t"><span class="grab" aria-hidden="true"></span>
   <form class="inner" id="gf" novalidate>
-    <div style="display:flex;align-items:center;justify-content:space-between"><button type="button" class="link" data-act="close" style="font-size:17px;font-weight:400;min-width:60px;text-align:left">Cancel</button><h2 id="g-t" style="margin:0;font-size:17px;font-weight:700">${pt?"Edit goal":"New savings goal"}</h2><span style="min-width:60px"></span></div>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="g-t" style="margin:0;font-size:17px;font-weight:700">${pt?"Edit goal":"New savings goal"}</h2>${XB}</div>
     <div class="field">
       <label class="row" for="g-name"><span style="flex:1">Name</span><input class="val" id="g-name" placeholder="e.g. New car" value="${pt?esc(pt.name):""}" maxlength="24" autocomplete="off" style="width:180px"></label>
       <label class="row" for="g-target"><span style="flex:1">Target (CHF)</span><input class="val" id="g-target" inputmode="decimal" placeholder="0" value="${pt?fmt(pt.target):""}"></label>
@@ -629,7 +660,7 @@ function openGoalSheet(id){
   </form></div>`;
   const f=document.getElementById("gf"),nm=document.getElementById("g-name"),tg=document.getElementById("g-target"),sv=document.getElementById("g-save");
   const ok=()=>{sv.disabled=!(nm.value.trim()&&parse(tg.value)>0);};
-  f.addEventListener("input",ok);ok();
+  f.addEventListener("input",()=>{sheetDirty=true;ok();});ok();sheetDirty=false;bindSwipe(layer.querySelector(".sheet"));
   if(!pt)setTimeout(()=>nm.focus(),60);
   f.addEventListener("submit",e=>{e.preventDefault();if(sv.disabled)return;
     const data={name:nm.value.trim(),target:parse(tg.value),fi:document.getElementById("g-fi").getAttribute("aria-checked")==="true"};
@@ -658,8 +689,8 @@ function openDue(){
   <button class="link" data-act="later" style="font-size:17px">Remind me tomorrow</button></div>`;
 }
 /* full-screen shell (first launch + setup) */
-function shellFull(body,next,back){
-  return `<div class="full"><div class="wall" aria-hidden="true">${document.querySelector(".wall").innerHTML}</div>
+function shellFull(body,next,back,backBtn){
+  return `<div class="full${backBtn?" hasback":""}"><div class="wall" aria-hidden="true">${document.querySelector(".wall").innerHTML}</div>${backBtn?`<button class="backbtn" ${backBtn[0]}><svg width="13" height="21" viewBox="0 0 13 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2L2.5 10.5 10.5 19"/></svg><span>${backBtn[1]}</span></button>`:""}
   <div class="screen fscroll">${body}</div>
   <div class="foot">${next}${back}</div></div>`;
 }
@@ -691,7 +722,7 @@ function drawFirst(step){
       <p class="muted" style="margin:0;font-size:15px;line-height:1.4">Safe runs like an app from your Home Screen, full screen and offline. iPhone only sends the monthly reminder to apps added there.</p>
       <div class="list glass">${n(1,ICS.share,"Tap Share","The square with the arrow in Safari's toolbar.")}${n(2,ICS.addhome,"Choose “Add to Home Screen”","Scroll down in the menu if you don't see it.")}${n(3,`<span style="transform:scale(.7);display:flex">${appIcon}</span>`,"Open Safe from your Home Screen","Setup continues there.")}</div>
       <p class="note">Important: an app on the Home Screen keeps its own data, separate from Safari. Set Safe up after opening it from the Home Screen, or your numbers stay behind in Safari.</p>`,
-      `<div class="btn plain" style="cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="demo">Use Safe in the browser instead</button>`);
+      `<div class="btn plain" style="cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="demo">Use Safe in the browser instead</button>`,['data-act="fl" data-s="welcome"',"Back"]);
   }else if(step==="notify"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:40px">
       <span class="glass" style="width:84px;height:84px;border-radius:28px;display:flex;align-items:center;justify-content:center;color:var(--accent);margin-bottom:14px">${ICS.bell}</span>
@@ -745,7 +776,8 @@ function moneyRow(id,label,val,dot,sub){return `<label class="row" for="${id}">$
 function drawSetup(){
   const steps=setupSteps(),s=steps[SU.step],total=Math.max(steps.length-1,1),pct=SU.step/total*100,last=SU.step===steps.length-1;
   const bar=`<div style="height:5px;border-radius:3px;background:var(--track);overflow:hidden"><div style="height:5px;width:${pct}%;background:var(--accent)"></div></div>`;
-  const nav=(label)=>`<div style="display:flex;gap:10px"><button class="btn plain" data-act="sback" style="flex:1">Back</button><button class="btn" data-act="snext" id="su-next" style="flex:2">${label}</button></div>`;
+  const nav=(label)=>`<button class="btn" data-act="snext" id="su-next">${label}</button>`;
+  const BK=['data-act="sback"',"Back"];
   const nextLabel=()=>{if(last)return "Save";const nx=steps[SU.step+1];return nx.k==="month"?"Next: "+MS[kYM(nx.key).m-1]+" "+kYM(nx.key).y:nx.k==="year"?"Next: "+nx.y+" total":"Next";};
   if(s.k==="intro"){
     const minY=S.today.y-15,maxK=SU.hist?SU.toK-1:SU.toK;
@@ -763,14 +795,14 @@ function drawSetup(){
     ${ys.length?`<div class="section">How do you know each year?</div><div class="list glass">${ys.map(yr).join("")}</div>
     <p class="note">You'll enter your balances once, then ${yc?yc+" yearly total"+(yc>1?"s":"")+(cnt?" and ":""):""}${cnt?cnt+" month"+(cnt===1?"":"s"):""}. A yearly total is shown as the monthly average.</p>`
     :`<p class="note">You start with ${kName(SU.toK)}. You'll enter your current balances once, then do your first check-in.</p>`}`,
-    `<button class="btn" data-act="snext" ${SU.hist&&n<=0?"disabled":""}>Continue</button>`,FL?`<button class="link" data-act="sclose">Back to demo</button>`:`<button class="link" data-act="sclose">Cancel</button>`);
+    `<button class="btn" data-act="snext" ${SU.hist&&n<=0?"disabled":""}>Continue</button>`,"",['data-act="sclose"',FL?(S.setupDone?"Back":"Demo"):"History"]);
   }else if(s.k==="bal"){
     const st=SU.start;
     layer.innerHTML=shellFull(`${bar}<div class="eyebrow">Starting balances</div><h1 style="font-size:30px">Before ${kName(SU.fromK)}</h1>
     <p class="muted" style="margin:0;font-size:15px;line-height:1.4">What you had at the end of ${kName(SU.fromK-1)}. Leave anything you don't have at 0.</p>
     <div class="list glass">${moneyRow("su-bc","Cash savings",st.cash,"var(--cash)")}${moneyRow("su-bv","Stock portfolio value",st.stockValue,"var(--stocks)")}${moneyRow("su-bp","Stocks paid in so far",st.paid,"var(--stocks)","Your own money, without gains")}${moneyRow("su-bpr","Property savings",st.property,"var(--prop)")}${moneyRow("su-bh","Holiday budget",st.holiday,"var(--hol)")}</div>
     <p class="note">Not sure what you paid into stocks? Use the portfolio value; gains then start counting from here.</p>`,
-    nav(nextLabel()),"");
+    nav(nextLabel()),"",BK);
   }else{
     const isY=s.k==="year",v=SU.vals[s.id]&&SU.vals[s.id]!=="skip"?SU.vals[s.id]:guessVals(s);
     const ks=isY?setupMonths(s.y):[s.key],title=isY?(ks.length===12?`${s.y} in total`:`${MS[kYM(ks[0]).m-1]} – ${MS[kYM(ks[ks.length-1]).m-1]} ${s.y}`):kName(s.key);
@@ -782,7 +814,7 @@ function drawSetup(){
     <div class="row muted"><span class="dot" style="background:var(--cash)"></span><span style="flex:1">Cash <span style="font-size:13px">· rest, automatic</span></span><span class="num" id="su-cash" style="color:var(--ink)"></span></div></div>
     <div class="list glass">${moneyRow("su-val",`Stock portfolio value, end of ${MS[kYM(ks[ks.length-1]).m-1]}`,v.stockValue)}</div>
     <p class="note">${isY?`Safe spreads these totals evenly over the ${ks.length} months and shows them as a monthly average.`:"Same as a check-in. A close estimate is fine."}</p>`,
-    nav(nextLabel()),isY?"":`<button class="link" data-act="sskip">Don't know this month – skip</button>`);
+    nav(nextLabel()),isY?"":`<button class="link" data-act="sskip">Don't know this month – skip</button>`,BK);
     const calc=()=>{const g=id=>parse((document.getElementById(id)||{}).value||0);
       const sv=g("su-sav"),pots=S.pots.reduce((a,pt)=>a+g("su-pot-"+pt.id),0),as=g("su-st")+g("su-pr")+g("su-ho")+pots,cash=sv-as,over=cash<0;
       document.getElementById("su-head").textContent=`Split your ${chf(sv)}`;
@@ -849,7 +881,10 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "tab": if(Date.now()-tabClickBlock<450)break;close();S.tab=t.dataset.tab;render();break;
     case "sheet": openSheet(null);break;
     case "edit": openSheet(+t.dataset.i);break;
-    case "close": if(layer.querySelector(".full")&&layer.querySelector(".sheet.info")){layer.querySelectorAll(".full ~ .scrim,.sheet.info").forEach(x=>x.remove());break;}close();break;
+    case "close": if(t.classList.contains("scrim")&&layer.querySelector(".sheet")){dismissSheet();break;}if(layer.querySelector(".full")&&layer.querySelector(".sheet.info")){layer.querySelectorAll(".full ~ .scrim,.sheet.info").forEach(x=>x.remove());break;}close();break;
+    case "dismiss": dismissSheet();break;
+    case "discard": sheetDirty=false;close();break;
+    case "keep": layer.querySelectorAll(".askbox,.ascrim").forEach(x=>x.remove());break;
     case "info": openInfo(t.dataset.k,t.dataset.a);break;
     case "hjump": S.hkey=t.dataset.k;render(true);break;
     case "hmenu": openMenu();break;
@@ -918,6 +953,10 @@ SafeStore.load().then(st=>{
   else maybeDue();
   SafeStore.persist();
 });
+/* swipe in from the left edge on full-screen pages = Back */
+let ex=null;
+layer.addEventListener("touchstart",e=>{const t=e.touches[0];ex=(layer.querySelector(".full .backbtn")&&!layer.querySelector(".sheet")&&t.clientX<28)?{x:t.clientX,y:t.clientY}:null;},{passive:true});
+layer.addEventListener("touchend",e=>{if(!ex)return;const t=e.changedTouches[0],dx=t.clientX-ex.x,dy=Math.abs(t.clientY-ex.y);ex=null;if(dx>70&&dy<60){const b=layer.querySelector(".full .backbtn");if(b)b.click();}},{passive:true});
 window.addEventListener("pagehide",()=>persist());
 document.addEventListener("visibilitychange",()=>{if(document.hidden){persist();return;}if(ready){refreshToday();if(!layer.innerHTML)render(true);maybeDue();}});
 })();
