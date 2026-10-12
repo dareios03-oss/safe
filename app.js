@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.6";
+const VERSION="1.0.7";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -412,6 +412,7 @@ const scr=document.getElementById("screen"),tabs=document.getElementById("tabs")
 const TABS=[["home","Home"],["checkin","Check-in"],["history","History"],["goals","Goals"],["settings","Settings"]];
 function render(keepScroll){
   document.getElementById("demotag").hidden=!S.demo;
+  document.getElementById("frame").classList.toggle("demo",!!S.demo);
   const y=scr.scrollTop;
   scr.innerHTML=({home,checkin,history,goals,settings})[S.tab]();
   drawTabs();
