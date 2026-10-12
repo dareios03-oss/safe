@@ -1,13 +1,13 @@
 (function(){
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MS=MONTHS.map(m=>m.slice(0,3));
-const fmt=n=>Math.round(n).toLocaleString("en-US");
+const fmt=n=>{const r=Math.round(+n||0);return (r<0?"-":"")+String(Math.abs(r)).replace(/\B(?=(\d{3})+(?!\d))/g,"\u2019");};
 const chf=n=>"CHF "+fmt(n);
 const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return isNaN(v)?0:v};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.4";
+const VERSION="1.0.5";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -679,21 +679,21 @@ function drawFirst(step){
       <h1 style="font-size:34px">Welcome to Safe</h1>
       <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and FI progress in one calm place.</p></div>
       <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On the 24th, log what you saved and split it.")}${featRow(IC.goals,"Watch your goals grow","Savings rate, first property and financial independence.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
-      `${dots(1)}<button class="btn" data-act="fl" data-s="${isStandalone()?"setup":"install"}" style="margin-top:8px">Get started</button>`,"");
+      `<button class="btn" data-act="fl" data-s="${isStandalone()?"setup":"install"}" >Get started</button>`,"");
   }else if(step==="install"){
     const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
     layer.innerHTML=shellFull(`<div class="eyebrow" style="margin-top:8px">Install</div><h1 style="font-size:30px">Add Safe to your Home Screen</h1>
       <p class="muted" style="margin:0;font-size:15px;line-height:1.4">Safe runs like an app from your Home Screen, full screen and offline. iPhone only sends the monthly reminder to apps added there.</p>
       <div class="list glass">${n(1,ICS.share,"Tap Share","The square with the arrow in Safari's toolbar.")}${n(2,ICS.addhome,"Choose “Add to Home Screen”","Scroll down in the menu if you don't see it.")}${n(3,`<span style="transform:scale(.7);display:flex">${appIcon}</span>`,"Open Safe from your Home Screen","Setup continues there.")}</div>
       <p class="note">Important: an app on the Home Screen keeps its own data, separate from Safari. Set Safe up after opening it from the Home Screen, or your numbers stay behind in Safari.</p>`,
-      `${dots(2)}<div class="btn plain" style="margin-top:8px;cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="setup">Use Safe in the browser instead</button>`);
+      `<div class="btn plain" style="cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="setup">Use Safe in the browser instead</button>`);
   }else if(step==="notify"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:40px">
       <span class="glass" style="width:84px;height:84px;border-radius:28px;display:flex;align-items:center;justify-content:center;color:var(--accent);margin-bottom:14px">${ICS.bell}</span>
       <h1 style="font-size:30px">Get a reminder on the 24th?</h1>
       <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:310px">One reminder a month, on the 24th at 19:00, so you don't forget your check-in. Nothing else.</p></div>
       <div class="glass" style="display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:22px;margin-top:18px;text-align:left" aria-label="Preview of the notification">${appIcon}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="display:flex;justify-content:space-between;font-size:15px"><b>Safe</b><span class="muted" style="font-size:13px">24th, 19:00</span></span><span style="font-size:15px;font-weight:600">Time for your monthly check-in</span><span class="muted" style="font-size:15px">Log what you saved this month.</span></span></div>`,
-      `${dots(3)}<button class="btn" data-act="fl" data-s="ask" style="margin-top:8px">Allow notifications</button>`,`<button class="link" data-act="fl" data-s="no">Not now</button>`);
+      `<button class="btn" data-act="fl" data-s="ask">Allow notifications</button>`,`<button class="link" data-act="fl" data-s="no">Not now</button>`);
   }
 }
 function askNotifications(){
