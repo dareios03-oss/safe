@@ -7,14 +7,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.8";
+const VERSION="1.0.9";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
 const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
-  lastBackup:null,backupYm:null,createdYm:null,setupDone:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
+  lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","demo","lastDuePrompt"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -38,6 +38,8 @@ function demoData(){
     ms.push({y,m,income,saved,stocks:st,property:pr,holiday:ho,pots,cash:saved-st-pr-ho-(pots.demo1||0),stockValue:Math.round(v),goal:2700,est:false});}
   return {months:ms,start:{cash:9000,property:1500,holiday:300,stockValue:4000,paid:3600},pots:[{id:"demo1",name:"New car",target:12000,fi:false,color:"#E0457B"}],nextGoal:2700};
 }
+function enterDemo(){if(S.demo)return;REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});}
+function leaveDemo(){if(!S.demo)return;Object.assign(S,REAL||emptyData(),{demo:false,hkey:null});REAL=null;}
 const backupLabel=()=>S.lastBackup?new Date(S.lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}):"never";
 const backupOverdue=()=>S.months.length>0&&ym(S.today.y,S.today.m)-(S.backupYm??S.createdYm??ym(S.today.y,S.today.m))>=2;
 
@@ -411,8 +413,10 @@ function openInfo(k,a){
 const scr=document.getElementById("screen"),tabs=document.getElementById("tabs"),layer=document.getElementById("layer");
 const TABS=[["home","Home"],["checkin","Check-in"],["history","History"],["goals","Goals"],["settings","Settings"]];
 function render(keepScroll){
-  document.getElementById("demotag").hidden=!S.demo;
-  document.getElementById("frame").classList.toggle("demo",!!S.demo);
+  const bar=document.getElementById("demotag"),showBar=S.demo||!S.setupDone;
+  bar.hidden=!showBar;
+  bar.innerHTML=(S.demo?`<span class="demotag-pill glass">Demo</span>`:"")+(!S.setupDone?`<button class="demo-setup glass" data-act="startsetup">Start setup<span aria-hidden="true">›</span></button>`:"");
+  document.getElementById("frame").classList.toggle("demo",showBar);
   const y=scr.scrollTop;
   scr.innerHTML=({home,checkin,history,goals,settings})[S.tab]();
   drawTabs();
@@ -680,14 +684,14 @@ function drawFirst(step){
       <h1 style="font-size:34px">Welcome to Safe</h1>
       <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and FI progress in one calm place.</p></div>
       <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On the 24th, log what you saved and split it.")}${featRow(IC.goals,"Watch your goals grow","Savings rate, first property and financial independence.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
-      `<button class="btn" data-act="fl" data-s="${isStandalone()?"setup":"install"}" >Get started</button>`,"");
+      `<button class="btn" data-act="fl" data-s="${isStandalone()?"demo":"install"}" >Get started</button>`,"");
   }else if(step==="install"){
     const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
     layer.innerHTML=shellFull(`<div class="eyebrow" style="margin-top:8px">Install</div><h1 style="font-size:30px">Add Safe to your Home Screen</h1>
       <p class="muted" style="margin:0;font-size:15px;line-height:1.4">Safe runs like an app from your Home Screen, full screen and offline. iPhone only sends the monthly reminder to apps added there.</p>
       <div class="list glass">${n(1,ICS.share,"Tap Share","The square with the arrow in Safari's toolbar.")}${n(2,ICS.addhome,"Choose “Add to Home Screen”","Scroll down in the menu if you don't see it.")}${n(3,`<span style="transform:scale(.7);display:flex">${appIcon}</span>`,"Open Safe from your Home Screen","Setup continues there.")}</div>
       <p class="note">Important: an app on the Home Screen keeps its own data, separate from Safari. Set Safe up after opening it from the Home Screen, or your numbers stay behind in Safari.</p>`,
-      `<div class="btn plain" style="cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="setup">Use Safe in the browser instead</button>`);
+      `<div class="btn plain" style="cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="demo">Use Safe in the browser instead</button>`);
   }else if(step==="notify"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:40px">
       <span class="glass" style="width:84px;height:84px;border-radius:28px;display:flex;align-items:center;justify-content:center;color:var(--accent);margin-bottom:14px">${ICS.bell}</span>
@@ -759,7 +763,7 @@ function drawSetup(){
     ${ys.length?`<div class="section">How do you know each year?</div><div class="list glass">${ys.map(yr).join("")}</div>
     <p class="note">You'll enter your balances once, then ${yc?yc+" yearly total"+(yc>1?"s":"")+(cnt?" and ":""):""}${cnt?cnt+" month"+(cnt===1?"":"s"):""}. A yearly total is shown as the monthly average.</p>`
     :`<p class="note">You start with ${kName(SU.toK)}. You'll enter your current balances once, then do your first check-in.</p>`}`,
-    `<button class="btn" data-act="snext" ${SU.hist&&n<=0?"disabled":""}>Continue</button>`,FL?`<button class="link" data-act="fl" data-s="welcome">Back</button>`:`<button class="link" data-act="sclose">Cancel</button>`);
+    `<button class="btn" data-act="snext" ${SU.hist&&n<=0?"disabled":""}>Continue</button>`,FL?`<button class="link" data-act="sclose">Back to demo</button>`:`<button class="link" data-act="sclose">Cancel</button>`);
   }else if(s.k==="bal"){
     const st=SU.start;
     layer.innerHTML=shellFull(`${bar}<div class="eyebrow">Starting balances</div><h1 style="font-size:30px">Before ${kName(SU.fromK)}</h1>
@@ -827,6 +831,7 @@ function saveSetup(){
   return recs.length;
 }
 function endSetup(saved){
+  if(!saved&&FL){FL=false;layer.innerHTML="";if(!S.setupDone)enterDemo();S.tab="home";render();return;}
   let n=0;if(saved)n=saveSetup();
   if(FL){drawFirst("notify");if(saved)toast(n?`${n} month${n===1?"":"s"} saved`:"Balances saved");return;}
   close();if(saved){S.tab="history";render();toast(n?`${n} month${n===1?"":"s"} added`:"Balances saved");}
@@ -838,8 +843,9 @@ document.getElementById("frame").addEventListener("click",e=>{
   const a=t.dataset.act;
   if(S.demo&&["backup","restore","wipe","setup"].includes(a)){toast("Not available in Demo mode");return;}
   switch(a){
-    case "demo": if(!S.demo){REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});render(true);toast("Demo mode on · your numbers are hidden");}
-      else{Object.assign(S,REAL,{demo:false,hkey:null});REAL=null;render(true);toast("Demo mode off · your numbers are back");}break;
+    case "demo": if(!S.demo){enterDemo();render(true);toast(S.setupDone?"Demo mode on · your numbers are hidden":"Demo mode on");}
+      else{leaveDemo();render(true);toast(S.setupDone?"Demo mode off · your numbers are back":"Demo mode off");}break;
+    case "startsetup": leaveDemo();S.tab="home";render();FL=true;firstDone=false;openSetup();FL=true;break;
     case "tab": if(Date.now()-tabClickBlock<450)break;close();S.tab=t.dataset.tab;render();break;
     case "sheet": openSheet(null);break;
     case "edit": openSheet(+t.dataset.i);break;
@@ -856,7 +862,7 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "gfi": {const sw=document.getElementById("g-fi");sw.setAttribute("aria-checked",sw.getAttribute("aria-checked")!=="true");break;}
     case "backup": downloadBackup().then(ok=>{if(!ok){toast("Backup cancelled");return;}S.lastBackup=new Date().toISOString();S.backupYm=ym(S.today.y,S.today.m);document.querySelectorAll(".toast").forEach(x=>x.remove());render(true);toast("Backup saved");});break;
     case "restore": pickBackup(false);break;
-    case "wipe": confirmBox({title:"Delete all data?",text:`This removes ${S.months.length} month${S.months.length===1?"":"s"}, your savings goals and all balances from this iPhone. It can't be undone. Backup files you downloaded stay.`,ok:"Delete everything",type:"DELETE",run:()=>{S.months=[];S.start={cash:0,property:0,holiday:0,stockValue:0,paid:0};S.pots=[];S.nextGoal=0;S.hkey=null;S.tab="home";close();render();toast("All data deleted");}});break;
+    case "wipe": confirmBox({title:"Delete all data?",text:`This removes ${S.months.length} month${S.months.length===1?"":"s"}, your savings goals and all balances from this iPhone. It can't be undone. Backup files you downloaded stay.`,ok:"Delete everything",type:"DELETE",run:()=>{S.setupDone=false;S.months=[];S.start={cash:0,property:0,holiday:0,stockValue:0,paid:0};S.pots=[];S.nextGoal=0;S.hkey=null;S.tab="home";close();render();toast("All data deleted");}});break;
     case "delmonth": {const r=S.months[editI],name=`${MONTHS[r.m-1]} ${r.y}`,idx=editI;confirmBox({title:`Delete ${name}?`,text:`Its ${chf(r.saved)} saved and the split are removed from History and from your balances. It can't be undone.`,ok:"Delete month",run:()=>{S.months.splice(idx,1);S.hkey=null;close();render(true);toast(`${name} deleted`);}});break;}
     case "confirm": {const fn=pending;if(fn)fn();break;}
     case "addgoal": openGoalSheet(null);break;
@@ -868,6 +874,7 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "flrestore": pickBackup(true);break;
     case "fl": {const s=t.dataset.s;
       if(s==="setup"){openSetup();break;}
+      if(s==="demo"){S.welcomed=true;FL=false;layer.innerHTML="";enterDemo();S.tab="home";render();toast("This is example data · tap Start setup when you're ready");break;}
       if(s==="ask"){askNotifications();break;}
       if(s==="no"){finishFirst(false);break;}
       drawFirst(s);break;}
@@ -905,7 +912,10 @@ function maybeDue(){
 SafeStore.load().then(st=>{
   if(st){PKEYS.forEach(k=>{if(st[k]!==undefined)S[k]=st[k];});REAL=st.real||null;}
   normalize();ready=true;render();
-  if(!S.setupDone)openFirst();else maybeDue();
+  if(S.setupDone)S.welcomed=true;
+  if(!S.welcomed)openFirst();
+  else if(!S.setupDone&&!S.demo&&!S.months.length&&!REAL){enterDemo();render();}
+  else maybeDue();
   SafeStore.persist();
 });
 window.addEventListener("pagehide",()=>persist());
