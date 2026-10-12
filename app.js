@@ -7,14 +7,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.2";
+const VERSION="1.1.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -83,6 +83,30 @@ const IC={
 };
 const appIcon='<svg class="appicon" viewBox="0 0 160 160" aria-hidden="true"><defs><clipPath id="sfiDc"><rect width="160" height="160" rx="36"/></clipPath></defs><g clip-path="url(#sfiDc)"><defs><filter id="sfiDb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter><mask id="sfiDm"><g transform="translate(80,80) scale(.84) translate(-80,-75)"><circle cx="80" cy="75" r="50" fill="none" stroke="#fff" stroke-width="13"/><path d="M80 75V47M80 75L104 89M80 75L56 89" stroke="#fff" stroke-width="12" stroke-linecap="round" fill="none"/><circle cx="80" cy="47" r="10" fill="#fff"/><circle cx="104" cy="89" r="10" fill="#fff"/><circle cx="56" cy="89" r="10" fill="#fff"/><circle cx="80" cy="75" r="16" fill="#fff"/></g></mask></defs><rect width="160" height="160" fill="#FFFFFF"/><g mask="url(#sfiDm)"><g filter="url(#sfiDb)"><circle cx="35" cy="30" r="62" fill="#6E8BFF"/><circle cx="135" cy="45" r="55" fill="#C77DFF"/><circle cx="35" cy="130" r="55" fill="#FFB27A"/><circle cx="130" cy="130" r="52" fill="#46D6C4"/></g></g></g><rect x=".5" y=".5" width="159" height="159" rx="35.5" fill="none" stroke="rgba(11,16,32,.08)"/></svg>';
 
+/* ---------- first property: equity and income limit ---------- */
+function propCalc(b){
+  const e=S.equity/100,reserve=S.reserve||0,usable=Math.max(b.property-reserve,0),byEq=usable/e;
+  const l12=S.months.slice(-12),inc=l12.length?l12.reduce((a,r)=>a+r.income,0)/l12.length*12:0;
+  const rate=.05*(1-e)+.01+Math.max(0,(1-e)-2/3)/15;   // imputed interest 5% on the mortgage + 1% upkeep + amortisation to 2/3 in 15 years
+  const byInc=inc?Math.floor(inc/3/rate/1000)*1000:0,max=inc?Math.min(byEq,byInc):byEq,limit=!inc?"equity":byEq<=byInc?"equity":"income";
+  return {e,reserve,usable,byEq,byInc,inc,rate,max,limit,need:max*e,cost:max*rate/12};
+}
+function propCard(b){
+  const p=propCalc(b),top=Math.max(p.byEq,p.byInc,1);
+  const bar=(label,v,on)=>`<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between;font-size:13px"><span class="muted">${label}</span><span class="num" style="${on?"color:var(--ink)":"color:var(--muted)"}">${p.inc||label.indexOf("income")<0?chf(v):"no income yet"}</span></div><span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${Math.min(v/top*100,100)}%;background:${on?"var(--prop)":"var(--soft)"};opacity:${on?1:.45}"></span></span></div>`;
+  return `<section class="card glass" data-act="info" data-k="prop" role="button" tabindex="0" aria-label="First property details">
+    <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;font-size:17px;font-weight:600">First property</span><span class="pill warn" style="align-self:center">Limited by ${p.limit}</span></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Can buy up to</span><span class="big" style="font-size:34px">${chf(p.max)}</span></div>
+    ${bar("With your equity",p.byEq,p.limit==="equity")}${bar("With your income",p.byInc,p.limit==="income")}
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:10px">
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Property savings</span><span class="num" style="font-size:15px">${chf(b.property)}</span></span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Safety reserve</span><span class="num" style="font-size:15px">−${fmt(p.reserve)}</span></span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Equity needed (${S.equity}%)</span><span class="num" style="font-size:15px">${chf(p.need)}</span></span>
+    </div>
+    <span class="muted" style="font-size:13px">At this price: about ${chf(p.cost)}/month housing costs${p.inc?` · max. 1/3 of your income`:""}</span>
+  </section>`;
+}
+
 /* ---------- views ---------- */
 function home(){
   const i=L(),b=bal(i),p=bal(i-1),has=!!cur(),r=cur()||blank();
@@ -119,11 +143,7 @@ function home(){
       <span class="muted" style="font-size:13px">of ${S.fi>=1e6?(S.fi/1e6)+"M":fmt(S.fi)} · ≈ ${projYear(fiBase)}</span>
     </button>
   </div>
-  <button class="card glass" data-act="tab" data-tab="goals" style="text-align:left;flex-direction:row;align-items:center;padding:16px 20px">
-    <span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span>
-    <span style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><span class="muted" style="font-size:13px;font-weight:600">First property</span><span style="font-size:17px;font-weight:600">Can buy up to ${chf(b.property/(S.equity/100))}</span></span>
-    <span class="muted" style="font-size:13px">${S.equity}%</span>
-  </button>`;
+  ${propCard(b)}`;
 }
 
 function checkin(){
@@ -257,19 +277,12 @@ function goals(){
       <span class="muted" style="font-size:12px;text-align:right;line-height:1.4">at avg ${chf(avg)}/month<br>and ${S.ret}% return per year</span>
     </div>
   </section>
-  <section class="card glass" data-act="info" data-k="prop" role="button" tabindex="0" aria-label="First property details">
-    <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop)">${IC.house}</span><span style="font-size:17px;font-weight:600">First property</span></div>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Saved for equity</span><span style="font-size:22px;font-weight:700">${chf(b.property)}</span></span>
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Can buy up to</span><span style="font-size:22px;font-weight:700">${chf(b.property/(S.equity/100))}</span></span>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:10px"><span class="muted" style="font-size:13px">Based on ${S.equity}% equity share</span><button class="link" data-act="tab" data-tab="settings">Change</button></div>
-  </section>
+  ${propCard(b)}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="section" style="margin:0">Savings goals</div><button class="link" data-act="addgoal" style="font-size:17px">+ Add</button></div>
   <div class="list glass">
     ${gl.map(g=>{const pc=g.t>0?Math.min(Math.max(g.v,0)/g.t*100,100):0;return `
     <div class="grow" data-act="info" data-k="${g.k}" ${g.a?`data-a="${g.a}"`:""} role="button" tabindex="0" aria-label="${g.n} details">
-      <div style="display:flex;justify-content:space-between;font-size:17px;gap:8px"><span>${g.n}${pc>=100?' <span style="color:var(--good);font-size:13px;font-weight:600">✓ reached</span>':""}${g.nofi?' <span class="muted" style="font-size:12px">· not in FI</span>':""}</span><span class="muted num" style="font-size:15px">${fmt(Math.min(g.v,g.t))} / ${fmt(g.t)}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:17px">${g.n}</span>${pc>=100||g.nofi?`<span style="display:flex;gap:8px;font-size:13px">${pc>=100?'<span style="color:var(--good);font-weight:600">✓ reached</span>':""}${g.nofi?'<span class="muted">not in FI</span>':""}</span>`:""}</span><span class="muted num" style="font-size:15px;white-space:nowrap;padding-top:2px">${fmt(Math.min(g.v,g.t))} / ${fmt(g.t)}</span></div>
       <span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${pc}%;background:${g.c}"></span></span></div>`;}).join("")}
   </div>
   ${S.pots.length?"":`<p class="note">Saving for something else, like a car or a wedding? Add it as its own goal and give it a line in every check-in.</p>`}`;
@@ -280,7 +293,7 @@ function settings(){
   const rb=(act,label,color,last)=>`<button class="row" data-act="${act}" style="border:0;${last?"":"border-bottom:1px solid var(--line);"}background:transparent;color:${color||"var(--accent)"};font-weight:600;text-align:left">${label}</button>`;
   return `<h1>Settings</h1>
   <div class="section">Goals &amp; calculations</div>
-  <div class="list glass">${fld("s-fi","FI goal (CHF)",fmt(S.fi))}${fld("s-hol","Holiday budget (CHF)",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund (CHF)",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-ret","Expected return / year",S.ret,"%")}</div>
+  <div class="list glass">${fld("s-fi","FI goal (CHF)",fmt(S.fi))}${fld("s-hol","Holiday budget (CHF)",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund (CHF)",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve (CHF)",fmt(S.reserve||0))}${fld("s-ret","Expected return / year",S.ret,"%")}</div>
   <p class="note">Holiday money is shown in totals but not counted for FI. Changes update Home and Goals right away.</p>
   <div class="section">Reminder</div>
   <div class="list glass">
@@ -331,7 +344,7 @@ function openInfo(k,a){
     let extra="",text="";
     if(a==="cash"){extra=kv([["Added in "+MONTHS[r.m-1],sign(r.cash),col(r.cash)],["Emergency fund target",chf(S.emergency)],["Still to go",chf(Math.max(S.emergency-b.cash,0))]]);text="Cash gets whatever you don't assign to stocks, property or holiday in the check-in. It also counts toward your emergency fund.";}
     if(a==="stocks"){extra=kv([["Paid in (all time)",chf(b.paid)],["Market gains (all time)",sign(b.gain),col(b.gain)],["Paid in, "+MONTHS[r.m-1],"+"+fmt(r.stocks)],["Market gain, "+MONTHS[r.m-1],sign(mGain),col(mGain)]]);text="Paid in is the money you moved into stocks yourself. Market gains are the portfolio value minus everything you paid in, so you can see what came from you and what came from the market.";}
-    if(a==="property"){extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.property)],["Equity share",S.equity+"%"],["Can buy up to",chf(b.property/(S.equity/100))]]);text=`This is your equity for a first property. At ${S.equity}% equity, every CHF 1 saved lets you buy CHF ${fmt(100/S.equity)} of property.`;action=`<button class="btn" data-act="info" data-k="prop">How the property calculation works</button>`;}
+    if(a==="property"){extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.property)],["Equity share",S.equity+"%"],["Can buy up to",chf(propCalc(b).max)]]);text=`This is your equity for a first property. At ${S.equity}% equity, every CHF 1 saved lets you buy CHF ${fmt(100/S.equity)} of property.`;action=`<button class="btn" data-act="info" data-k="prop">How the property calculation works</button>`;}
     if(a==="holiday"){const per=avgOf("holiday",6);extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.holiday)],["Target",chf(S.holidayTarget)],["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Reached in",monthsTo(S.holidayTarget-b.holiday,per)]]);text="Not in FI: the holiday budget counts in your net worth, but not in FI progress, because it's money you plan to spend. Change the target in Settings.";}
     body=`<span class="big">${chf(C[2])}</span><span class="pill ${C[3]>=0?"good":"warn"}">${C[3]>=0?"▲":"▼"} ${chf(Math.abs(C[3]))} this month</span>
     <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,`var(${C[1]})`,h.v.length-1)}${extra}<p class="explain">${text}</p>`;
@@ -362,11 +375,17 @@ function openInfo(k,a){
     <p class="explain">The projection adds your average monthly saving and grows everything at the expected return, month by month, until it reaches your goal. It's a rough guide, not a forecast: markets and your savings will vary.</p>`;
     action=`<button class="btn" data-act="tab" data-tab="settings">Change goal or return</button>`;
   }else if(k==="prop"){
+    const p=propCalc(b);
     title="First property";
-    body=`<span class="big">${chf(b.property/(S.equity/100))}</span><span class="muted">maximum property price</span>
-    ${kv([["Property savings",chf(b.property)],["Equity share",S.equity+"%"],["Calculation",`${fmt(b.property)} ÷ ${S.equity}%`]])}
-    <p class="explain">Swiss lenders usually expect at least 20% of the price as your own money, and housing costs of no more than about a third of your income. Safe only checks the equity part for now; the detailed affordability check comes later.</p>`;
-    action=`<button class="btn" data-act="tab" data-tab="settings">Change equity share</button>`;
+    body=`<span class="big">${chf(p.max)}</span><span class="muted">maximum price · limited by your ${p.limit}</span>
+    <div class="section" style="padding-left:4px">Your equity</div>
+    ${kv([["Property savings",chf(b.property)],["Safety reserve you keep","−"+chf(p.reserve)],["Usable equity",chf(p.usable)],[`Max. price with ${S.equity}% equity`,chf(p.byEq)]])}
+    <div class="section" style="padding-left:4px">Your income</div>
+    ${kv([["Income per year (avg. of last 12 months × 12)",p.inc?chf(p.inc):"no data yet"],["Max. housing costs (1/3)",p.inc?chf(p.inc/3)+"/year":"–"],["Max. price your income allows",p.inc?chf(p.byInc):"–"]])}
+    <div class="section" style="padding-left:4px">At ${chf(p.max)}</div>
+    ${kv([["Equity needed",chf(p.need)],["Mortgage",chf(p.max-p.need)],["Housing costs (calculated)",chf(p.cost)+"/month"]])}
+    <p class="explain">Swiss banks check two things. Equity: at least ${S.equity}% of the price must be your own money; Safe keeps your safety reserve aside first. Income: calculated costs of 5% interest on the mortgage, 1% upkeep and amortisation down to two thirds of the price within 15 years must stay below one third of your income. Banks use gross income; Safe uses the income you enter in your check-ins. Purchase costs (notary, land registry) are not included.</p>`;
+    action=`<button class="btn" data-act="tab" data-tab="settings">Change equity share or reserve</button>`;
   }else if(k==="hol"){
     const per=avgOf("holiday",6);
     title="Holiday budget";
@@ -598,7 +617,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","ret","emergency"];
+const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","ret","emergency"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
@@ -926,7 +945,7 @@ document.getElementById("frame").addEventListener("change",e=>{
   const su=e.target.dataset.su;
   if(su&&SU){const fm=+document.getElementById("su-fm").value,fy=+document.getElementById("su-fy").value;let k=ym(fy,fm);const maxK=SU.hist?SU.toK-1:SU.toK;if(k>maxK)k=maxK;SU.fromK=k;fixPlan();drawSetup();return;}
   const id=e.target.dataset.set;if(!id)return;const v=parse(e.target.value);
-  if(id==="s-fi"&&v>0)S.fi=v; if(id==="s-hol"&&v>0)S.holidayTarget=v; if(id==="s-emer"&&v>0)S.emergency=v; if(id==="s-eq"&&v>0&&v<=100)S.equity=v; if(id==="s-ret"&&v>=0&&v<30)S.ret=v;
+  if(id==="s-fi"&&v>0)S.fi=v; if(id==="s-hol"&&v>0)S.holidayTarget=v; if(id==="s-emer"&&v>0)S.emergency=v; if(id==="s-eq"&&v>0&&v<=100)S.equity=v; if(id==="s-res"&&v>=0)S.reserve=v; if(id==="s-ret"&&v>=0&&v<30)S.ret=v;
   render(true);toast("Updated");
 });
 // swipe in History
