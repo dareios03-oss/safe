@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.0.7";
+const VERSION="1.0.8";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -70,11 +70,11 @@ function day24(y,m){return new Date(y,m-1,24).toLocaleDateString("en-GB",{weekda
 
 /* ---------- icons ---------- */
 const IC={
- home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
- checkin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
- history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>',
- goals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
- settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
+ home:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+ checkin:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+ history:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>',
+ goals:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+ settings:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
  plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
  chev:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
  house:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>'
@@ -669,7 +669,7 @@ const ICS={
   lock:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
   bell:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'
 };
-function featRow(ic,t,s){return `<div class="row" style="min-height:68px;align-items:center"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span></div>`;}
+function featRow(ic,t,s){return `<div class="row" style="min-height:68px;align-items:center"><span class="feat-ic" style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span></div>`;}
 function openFirst(){FL=true;drawFirst("welcome");}
 function drawFirst(step){
   FL=true;
