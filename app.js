@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.0";
+const VERSION="1.1.1";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -81,7 +81,7 @@ const IC={
  chev:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
  house:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg>'
 };
-const appIcon='<svg class="appicon" viewBox="0 0 40 40" aria-hidden="true"><defs><clipPath id="sfi-c"><rect width="40" height="40" rx="9"/></clipPath><filter id="sfi-b" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter></defs><g clip-path="url(#sfi-c)"><rect width="40" height="40" fill="#E8ECF7"/><g filter="url(#sfi-b)"><circle cx="6" cy="6" r="18" fill="#6E8BFF"/><circle cx="33" cy="17" r="15" fill="#C77DFF"/><circle cx="7" cy="37" r="15" fill="#FFB27A"/><circle cx="36" cy="38" r="14" fill="#46D6C4"/></g><svg x="3" y="3" width="34" height="34" viewBox="5 0 150 150"><circle cx="80" cy="75" r="50" fill="none" stroke="#fff" stroke-width="12"/><path d="M80 75V47M80 75L104 89M80 75L56 89" stroke="#fff" stroke-width="11" stroke-linecap="round"/><circle cx="80" cy="47" r="9" fill="#fff"/><circle cx="104" cy="89" r="9" fill="#fff"/><circle cx="56" cy="89" r="9" fill="#fff"/><circle cx="80" cy="75" r="15" fill="#fff"/></svg></g></svg>';
+const appIcon='<svg class="appicon" viewBox="0 0 160 160" aria-hidden="true"><defs><clipPath id="sfiDc"><rect width="160" height="160" rx="36"/></clipPath></defs><g clip-path="url(#sfiDc)"><defs><filter id="sfiDb" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter><mask id="sfiDm"><g transform="translate(80,80) scale(.84) translate(-80,-75)"><circle cx="80" cy="75" r="50" fill="none" stroke="#fff" stroke-width="13"/><path d="M80 75V47M80 75L104 89M80 75L56 89" stroke="#fff" stroke-width="12" stroke-linecap="round" fill="none"/><circle cx="80" cy="47" r="10" fill="#fff"/><circle cx="104" cy="89" r="10" fill="#fff"/><circle cx="56" cy="89" r="10" fill="#fff"/><circle cx="80" cy="75" r="16" fill="#fff"/></g></mask></defs><rect width="160" height="160" fill="#FFFFFF"/><g mask="url(#sfiDm)"><g filter="url(#sfiDb)"><circle cx="35" cy="30" r="62" fill="#6E8BFF"/><circle cx="135" cy="45" r="55" fill="#C77DFF"/><circle cx="35" cy="130" r="55" fill="#FFB27A"/><circle cx="130" cy="130" r="52" fill="#46D6C4"/></g></g></g><rect x=".5" y=".5" width="159" height="159" rx="35.5" fill="none" stroke="rgba(11,16,32,.08)"/></svg>';
 
 /* ---------- views ---------- */
 function home(){
