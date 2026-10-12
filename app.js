@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.4";
+const VERSION="1.1.5";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -975,6 +975,22 @@ scr.addEventListener("touchend",e=>{if(S.tab!=="history"||layer.innerHTML)return
 document.addEventListener("touchstart",()=>{},{passive:true});
 document.getElementById("frame").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches('[role="button"][data-act]')){e.preventDefault();e.target.click();}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&layer.innerHTML&&!FL)close();if(S.tab==="history"&&!layer.innerHTML&&!e.target.matches("input")){if(e.key==="ArrowLeft")step(-1);if(e.key==="ArrowRight")step(1);}});
+
+/* ---------- live thousands separator while typing (1000 → 1’000) ---------- */
+function groupLive(el){
+  const old=el.value,pos=el.selectionStart==null?old.length:el.selectionStart;
+  let s=old.replace(/,/g,".").replace(/[^0-9.\-]/g,"");
+  const neg=s.startsWith("-");s=s.replace(/-/g,"");
+  const dot=s.indexOf(".");let int=dot<0?s:s.slice(0,dot),dec=dot<0?"":"."+s.slice(dot+1).replace(/\./g,"");
+  int=int.replace(/^0+(?=\d)/,"");
+  const out=(neg?"-":"")+int.replace(/\B(?=(\d{3})+(?!\d))/g,"\u2019")+dec;
+  if(out===old)return;
+  const keep=old.slice(0,pos).replace(/,/g,".").replace(/[^0-9.\-]/g,"").length;
+  el.value=out;
+  let n=0,p=0;while(p<out.length&&n<keep){if(/[0-9.\-]/.test(out[p]))n++;p++;}
+  try{el.setSelectionRange(p,p);}catch(_){}
+}
+document.addEventListener("input",e=>{const el=e.target;if(el&&el.matches&&el.matches('input[inputmode="decimal"]'))groupLive(el);},true);
 
 /* ---------- start ---------- */
 function maybeDue(){
