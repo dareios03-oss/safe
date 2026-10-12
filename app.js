@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.5";
+const VERSION="1.1.6";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -122,8 +122,8 @@ function wireProp(){
   sh.addEventListener("input",e=>{const id=e.target.dataset.pp;if(!id)return;const v=parse(e.target.value);
     if(id==="eq"){if(v>0&&v<=100)S.equity=v;}else if(id==="reserve"){S.reserve=Math.max(v,0);}
     else{S.pp=Object.assign({},PPDEF,S.pp||{});if(id==="income")S.pp.income=e.target.value.trim()===""?0:Math.max(v,0);else if(v>=0)S.pp[id]=v;}
-    res.innerHTML=propResults();});
-  sh.addEventListener("change",()=>{render(true);});
+    res.innerHTML=propResults();persist();});
+  sh.addEventListener("focusout",()=>{render(true);});
   sh.addEventListener("focusin",e=>{if(e.target.matches("input"))setTimeout(()=>e.target.select(),0);});
 }
 /* ---------- views ---------- */
@@ -343,7 +343,9 @@ function mini(vals,labels,color,hi){
 function last6(fn){const n=S.months.length,from=Math.max(0,n-6),v=[],l=[];for(let i=from;i<n;i++){v.push(fn(i));l.push(MS[S.months[i].m-1]);}return {v,l};}
 function avgOf(key,n){const xs=S.months.slice(-n);return xs.length?xs.reduce((a,r)=>a+r[key],0)/xs.length:0;}
 function monthsTo(rest,per){if(rest<=0)return "already reached";if(per<=0)return "not at the current pace";const n=Math.ceil(rest/per),r=cur()||blank(),tot=r.y*12+(r.m-1)+n;return `about ${n} month${n===1?"":"s"} (${MONTHS[tot%12]} ${Math.floor(tot/12)})`;}
+let lastInfo=null;
 function openInfo(k,a){
+  lastInfo={k,a};
   const i=L(),b=bal(i),p=bal(i-1),r=cur()||blank(),prevVal=i>0?S.months[i-1].stockValue:0,mGain=r.stockValue-prevVal-r.stocks;
   let title="",body="",action="";
   const kv=rows=>`<div class="field">${rows.map(x=>`<div class="kv"><span class="muted">${x[0]}</span><b style="${x[2]||""}">${x[1]}</b></div>`).join("")}</div>`;
@@ -409,15 +411,15 @@ function openInfo(k,a){
     title="Holiday budget";
     body=`<span class="big">${chf(b.holiday)}</span><span class="muted">of ${chf(S.holidayTarget)} target</span>
     ${kv([["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(S.holidayTarget-b.holiday,per)]])}
-    <p class="explain">Not in FI: this money counts in your net worth but not in FI progress, because you plan to spend it.</p>`;
-    action=`<button class="btn" data-act="tab" data-tab="settings">Change target</button>`;
+    <div class="field"><label class="row" for="t-s-hol"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-hol" data-set="s-hol" inputmode="decimal" value="${fmt(S.holidayTarget)}" style="width:110px"><span class="muted" style="font-size:15px">CHF</span></label></div>
+    <p class="explain">Not in FI: this money counts in your net worth but not in FI progress, because you plan to spend it. Tap the target to change it.</p>`;
   }else if(k==="emer"){
     const per=avgOf("cash",6);
     title="Emergency fund";
     body=`<span class="big">${chf(Math.min(b.cash,S.emergency))}</span><span class="muted">of ${chf(S.emergency)} target · held as cash</span>
     ${kv([["Cash now",chf(b.cash)],["Still to go",chf(Math.max(S.emergency-b.cash,0))],["Avg cash added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(S.emergency-b.cash,per)]])}
-    <p class="explain">${r.income?`The target is about ${(S.emergency/r.income).toFixed(1)} months of income. `:""}It's filled by the cash part of each check-in.</p>`;
-    action=`<button class="btn" data-act="tab" data-tab="settings">Change target</button>`;
+    <div class="field"><label class="row" for="t-s-emer"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-emer" data-set="s-emer" inputmode="decimal" value="${fmt(S.emergency)}" style="width:110px"><span class="muted" style="font-size:15px">CHF</span></label></div>
+    <p class="explain">${r.income?`The target is about ${(S.emergency/r.income).toFixed(1)} months of income. `:""}It's filled by the cash part of each check-in. Tap the target to change it.</p>`;
   }else if(k==="pot"){
     const pt=S.pots.find(x=>x.id===a);if(!pt)return;
     const v=b.pots[pt.id]||0,h=last6(j=>bal(j).pots[pt.id]||0),xs=S.months.slice(-6),per=xs.length?xs.reduce((s,x)=>s+((x.pots||{})[pt.id]||0),0)/xs.length:0;
@@ -964,9 +966,18 @@ function step(d){const ps=periods(S.hmode);if(!ps.length)return;let pi=ps.findIn
 document.getElementById("frame").addEventListener("change",e=>{
   const su=e.target.dataset.su;
   if(su&&SU){const fm=+document.getElementById("su-fm").value,fy=+document.getElementById("su-fy").value;let k=ym(fy,fm);const maxK=SU.hist?SU.toK-1:SU.toK;if(k>maxK)k=maxK;SU.fromK=k;fixPlan();drawSetup();return;}
-  const id=e.target.dataset.set;if(!id)return;const v=parse(e.target.value);
+});
+/* settings and targets save while typing (iOS may skip "change" after live formatting) */
+let setDirty=false;
+function applySetting(el){const id=el.dataset.set;if(!id)return;const v=parse(el.value);
   if(id==="s-fi"&&v>0)S.fi=v; if(id==="s-hol"&&v>0)S.holidayTarget=v; if(id==="s-emer"&&v>0)S.emergency=v; if(id==="s-eq"&&v>0&&v<=100)S.equity=v; if(id==="s-res"&&v>=0)S.reserve=v; if(id==="s-ret"&&v>=0&&v<30)S.ret=v;
-  render(true);toast("Updated");
+  setDirty=true;persist();}
+document.getElementById("frame").addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.set)applySetting(e.target);});
+document.getElementById("frame").addEventListener("focusout",e=>{
+  if(!(e.target.dataset&&e.target.dataset.set)||!setDirty)return;setDirty=false;
+  const inSheet=e.target.closest(".sheet");render(true);
+  if(inSheet&&lastInfo){openInfo(lastInfo.k,lastInfo.a);}
+  toast("Saved");
 });
 // swipe in History
 let sx=0,sy=0;
