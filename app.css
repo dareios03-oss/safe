@@ -198,3 +198,14 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 }
 .radio{width:22px;height:22px;border-radius:11px;border:2px solid var(--soft);flex:none;box-sizing:border-box;margin-left:8px}
 .radio.on{border:7px solid var(--accent)}
+
+/* intro tour + guide previews */
+.pv{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:24px;pointer-events:none}
+.pv-h{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:600}
+.pv-kv{display:flex;justify-content:space-between;font-size:14px}
+.pv-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px}
+.pv-leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:var(--muted)}
+.pv-leg i{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:4px}
+.pv-row{display:flex;align-items:center;gap:10px;padding-top:8px;border-top:1px solid var(--line)}
+.pv-track{display:block;height:5px;border-radius:3px;background:var(--track);overflow:hidden;margin-top:4px}
+.pv-track i{display:block;height:100%;border-radius:3px}

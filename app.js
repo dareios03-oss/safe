@@ -7,14 +7,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.2.4";
+const VERSION="1.3.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -233,7 +233,7 @@ function home(){
   const d=dueMonth();
   return `
   <div class="head"><div><div class="eyebrow">${has?`Latest check-in · ${MONTHS[r.m-1]} ${r.y}`:"No check-ins yet"}</div><h1>Overview</h1></div>
-  <button class="btn round" data-act="sheet" aria-label="New check-in">${IC.plus}</button></div>
+  <button class="btn round" data-act="sheet" aria-label="New check-in">${IC.plus}</button></div><!--tip-->
   ${isBehind()?`<button class="card glass" data-act="tab" data-tab="checkin" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Late</span><span style="flex:1;font-size:15px;font-weight:600">${MONTHS[d.m-1]} check-in is still open</span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`:""}
   ${backupOverdue()?`<button class="card glass" data-act="backup" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Backup</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">${S.lastBackup?"Last backup: "+backupLabel():"No backup yet"}</span><span class="muted" style="font-size:13px">Download one to your Files so your data is safe</span></span><span style="color:var(--accent);font-weight:600;font-size:15px">Back up</span></button>`:""}
   <section class="card glass" data-act="info" data-k="nw" role="button" tabindex="0" aria-label="Net worth details">
@@ -356,7 +356,7 @@ function history(){
   </section>`;
   return `
   <div class="head" style="align-items:center"><h1>History</h1>
-  <button class="btn small" data-act="hmenu" aria-haspopup="menu">${mode[0].toUpperCase()+mode.slice(1)}${IC.chev}</button></div>
+  <button class="btn small" data-act="hmenu" aria-haspopup="menu">${mode[0].toUpperCase()+mode.slice(1)}${IC.chev}</button></div><!--tip-->
   <div style="display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <button class="btn round" data-act="hprev" aria-label="Previous ${name}" ${pi===0?"disabled":""}>‹</button>
@@ -426,7 +426,7 @@ function settings(){
   <div class="list glass">${rb("wipe","Delete all data","var(--bad)",1)}</div>
   <p class="note">Removes every month, goal and balance from this iPhone. Backup files you downloaded stay.</p>
   <div class="section">About</div>
-  <div class="list glass"><button class="row" data-act="info" data-k="about" style="border:0;background:transparent;text-align:left;width:100%"><span style="flex:1">Safe</span><span class="muted">Version ${VERSION}</span></button></div>
+  <div class="list glass"><button class="row" data-act="guide" style="border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;width:100%"><span style="flex:1">How Safe works</span><span class="muted" aria-hidden="true">›</span></button><button class="row" data-act="info" data-k="about" style="border:0;background:transparent;text-align:left;width:100%"><span style="flex:1">Safe</span><span class="muted">Version ${VERSION}</span></button></div>
   <p class="note">Your data is stored only on this iPhone. Nothing is sent anywhere.</p>`;
 }
 
@@ -568,7 +568,9 @@ function render(keepScroll){
   bar.innerHTML=(S.demo?`<span class="demotag-pill glass">Demo</span>`:"")+(!S.setupDone?`<button class="demo-setup glass" data-act="startsetup">Start setup<span aria-hidden="true">›</span></button>`:"");
   document.getElementById("frame").classList.toggle("demo",showBar);
   const y=scr.scrollTop;
-  scr.innerHTML=({home,checkin,history,goals,settings})[S.tab]();
+  let html=({home,checkin,history,goals,settings})[S.tab]();
+  if(TIPS[S.tab]&&!(S.tipsSeen||{})[S.tab]&&!FL)html=html.includes("<!--tip-->")?html.replace("<!--tip-->",tipCard(S.tab)):html.replace(/<\/h1>(<\/div>)?/,m=>m+tipCard(S.tab));
+  scr.innerHTML=html;
   drawTabs();
   scr.scrollTop=keepScroll?y:0;
   persist();
@@ -853,6 +855,82 @@ const ICS={
   bell:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'
 };
 function featRow(ic,t,s){return `<div class="row" style="min-height:68px;align-items:center"><span class="feat-ic" style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span></div>`;}
+/* ---------- intro tour, guide, first-visit tips ---------- */
+const PV={ /* mini previews of real app parts, drawn with sample numbers */
+  checkin:()=>`<div class="pv glass" aria-hidden="true"><div class="pv-h"><span>September check-in</span><span class="pill good">Logged</span></div>
+    <div class="pv-kv"><span class="muted">Income</span><b>6’500</b></div><div class="pv-kv"><span class="muted">Saved</span><b>2’100</b></div>
+    <div class="pv-bar"><i style="flex:1080;background:var(--stocks)"></i><i style="flex:520;background:var(--cash)"></i><i style="flex:300;background:var(--prop)"></i><i style="flex:200;background:var(--hol)"></i></div>
+    <div class="pv-leg"><span><i style="background:var(--stocks)"></i>Stocks 1’080</span><span><i style="background:var(--cash)"></i>Cash 520</span><span><i style="background:var(--prop)"></i>Property 300</span><span><i style="background:var(--hol)"></i>Holiday 200</span></div></div>`,
+  home:()=>`<div class="pv glass" aria-hidden="true"><span class="muted" style="font-size:12px">Net worth</span><b style="font-size:26px;letter-spacing:-.02em">CHF 70’503</b><span class="pill good" style="align-self:flex-start">▲ CHF 2’905 this month</span>
+    ${[["Cash savings","23’745","var(--cash)",.8,"✓ Emergency fund filled"],["Stocks · paid in","26’280","var(--stocks)",.88,"current value 29’853 · volatile"],["Property savings","10’005","var(--prop)",.34,""]].map(r=>`<div class="pv-row"><span style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-size:13px;font-weight:600">${r[0]}</span>${r[4]?`<span class="muted" style="font-size:11px">${r[4]}</span>`:""}<span class="pv-track"><i style="width:${r[3]*100}%;background:${r[2]}"></i></span></span><b style="font-size:14px">${r[1]}</b></div>`).join("")}</div>`,
+  ontrack:()=>{const W=300,H=130,X=t=>10+t*(W-50),Y=v=>H-18-v/2.4*(H-30);const curve=(r)=>{let s="";for(let i=0;i<=25;i++){const t=i/25,yrs=i*1.48,v=1000*12*((Math.pow(1+r,yrs)-1)/r)/1e6;s+=`${X(t).toFixed(1)},${Y(v).toFixed(1)} `;}return s;};
+    return `<div class="pv glass" aria-hidden="true"><div class="pv-h"><span>On track for FI by 50?</span><span class="pill good">On track</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
+      <line x1="10" x2="${W-40}" y1="${Y(1)}" y2="${Y(1)}" stroke="var(--soft)" stroke-dasharray="3 4"/><text x="12" y="${Y(1)-5}" font-size="10" fill="var(--muted)">Goal 1M</text>
+      <line x1="${X(.68)}" x2="${X(.68)}" y1="10" y2="${H-18}" stroke="var(--soft)" stroke-dasharray="2 4"/>
+      <polyline points="${curve(.08)}" fill="none" stroke="var(--goodline)" stroke-width="1.8" stroke-dasharray="5 4"/>
+      <polyline points="${curve(.05)}" fill="none" stroke="var(--accent)" stroke-width="2.6"/>
+      <polyline points="${curve(.02)}" fill="none" stroke="var(--prop)" stroke-width="1.8" stroke-dasharray="5 4"/>
+      <circle cx="${X(.69)}" cy="${Y(1)}" r="3.5" fill="var(--bg)" stroke="var(--goodline)" stroke-width="2"/><text x="${X(.69)}" y="${Y(1)-7}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--goodline)">age 51</text>
+      <circle cx="10" cy="${Y(0)}" r="3.5" fill="var(--ink)"/>
+      <text x="10" y="${H-3}" font-size="10" fill="var(--muted)">Now</text><text x="${X(.68)}" y="${H-3}" text-anchor="middle" font-size="10" fill="var(--muted)">FI age 50</text><text x="${W-40}" y="${H-3}" text-anchor="end" font-size="10" fill="var(--muted)">62</text>
+    </svg>
+    <div class="pv-leg"><span><i style="background:var(--goodline)"></i>Best 8%</span><span><i style="background:var(--accent)"></i>Middle 5%</span><span><i style="background:var(--prop)"></i>Worst 2%</span></div></div>`;},
+  privacy:()=>`<div class="pv glass" aria-hidden="true" style="align-items:center;text-align:center;gap:10px"><span style="width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent)"><span style="transform:scale(1.4);display:flex">${ICS.lock}</span></span>
+    <b style="font-size:15px">Stored only on this iPhone</b>
+    <div class="pv-row" style="width:100%;text-align:left"><span style="width:32px;height:38px;border-radius:7px;background:var(--field);border:1px solid var(--fieldb);display:flex;align-items:flex-end;justify-content:center;font-size:8px;font-weight:700;color:var(--accent);padding-bottom:4px;box-sizing:border-box;flex:none">JSON</span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:600">Safe-backup-2026-10.json</span><span class="muted" style="font-size:11px">Saved in Files · iCloud Drive</span></span></div></div>`
+};
+const TOUR=[
+  {pv:"checkin",t:"Check in once a month",s:"On the 24th, enter your income and what you saved, then split it into stocks, cash, property, holiday and your own goals. It takes about two minutes."},
+  {pv:"home",t:"See where you stand",s:"Home shows your net worth and every pot. Stocks show what you paid in, with today’s value below, because markets move. History compares months, quarters and years."},
+  {pv:"ontrack",t:"Know if you’re on track",s:"Set your FI goal and the age you want to reach it. Safe projects your money at 8%, 5% and 2% a year, based on your real monthly average, and shows the age you reach the goal. It also tells you what first home you could afford."},
+  {pv:"privacy",t:"Private by design",s:"No account, no bank login, no server. Your numbers never leave this iPhone. Download a backup file now and then; Safe reminds you when it’s time."}
+];
+let tourReplay=false;
+function drawTour(i){
+  FL=true;const st=TOUR[i],last=i===TOUR.length-1;
+  const dots=`<div style="display:flex;gap:6px;justify-content:center;margin-top:4px" aria-label="Step ${i+1} of ${TOUR.length}">${TOUR.map((_,k)=>`<span style="width:${k===i?18:7}px;height:7px;border-radius:4px;background:${k===i?"var(--accent)":"var(--track)"};transition:width .2s"></span>`).join("")}</div>`;
+  const doneAct=tourReplay?'data-act="tourdone"':`data-act="fl" data-s="${isStandalone()?"demo":"install"}"`;
+  layer.innerHTML=shellFull(`<div class="tour" style="display:flex;flex-direction:column;gap:16px;padding-top:12px">
+      <div class="eyebrow">${i+1} of ${TOUR.length}</div>
+      ${PV[st.pv]()}
+      <h1 style="font-size:30px;margin:6px 0 0">${st.t}</h1>
+      <p class="muted" style="margin:0;font-size:17px;line-height:1.45">${st.s}</p>
+      ${dots}</div>`,
+    last?`<button class="btn" ${doneAct}>${tourReplay?"Done":"Let’s go"}</button>`:`<button class="btn" data-act="tour" data-i="${i+1}">Next</button>`,
+    last?"":`<button class="link" ${doneAct}>Skip</button>`,
+    i>0?[`data-act="tour" data-i="${i-1}"`,"Back"]:(tourReplay?['data-act="tourdone"',"Guide"]:['data-act="fl" data-s="welcome"',"Back"]));
+  const f=layer.querySelector(".full");let sx=null,sy=0;
+  f.addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX>28?t.clientX:null;sy=t.clientY;},{passive:true});
+  f.addEventListener("touchend",e=>{if(sx==null)return;const t=e.changedTouches[0],dx=t.clientX-sx,dy=Math.abs(t.clientY-sy);sx=null;if(Math.abs(dx)<60||dy>50)return;
+    if(dx<0&&!last)drawTour(i+1);else if(dx>0&&i>0)drawTour(i-1);},{passive:true});
+}
+function openGuide(){
+  const sec=(t,body)=>`<div class="section" style="padding-left:4px;margin-top:10px">${t}</div><div class="card glass" style="gap:10px">${body}</div>`;
+  const p=t=>`<p class="explain" style="margin:0">${t}</p>`;
+  layer.innerHTML=shellFull(`<h1 style="font-size:32px;margin-top:8px">How Safe works</h1>
+    ${p("Safe is a calm monthly tracker for your savings and investments. You log one check-in a month; Safe turns it into an overview, a history and an honest answer to “am I on track?”.")}
+    ${sec("1 · Monthly check-in",`${PV.checkin()}${p("Around the 24th, enter your income, what you saved and how you split it: stocks (with the portfolio’s current value), cash, property savings, holiday budget and your own goals. Missed a month? Safe asks for the oldest open month first, so there are no gaps.")}`)}
+    ${sec("2 · Home",`${PV.home()}${p("Net worth is everything together. Stocks show what you paid in (big) and today’s market value (small), because the value moves every day. Cash shows whether your emergency fund is filled. The savings rate is the share of your income you saved.")}`)}
+    ${sec("3 · History",p("Compare months, quarters or years: how much you saved, where it went and your market gain. Tap a month to edit or delete it."))}
+    ${sec("4 · Goals and On track",`${PV.ontrack()}${p("<b style=\"color:var(--ink)\">FI goal:</b> the amount at which you could live from your money. Holiday money and goals not marked “count toward FI” are left out.")}
+      ${p("<b style=\"color:var(--ink)\">On track:</b> tap the card and enter your birth year and the age you want to reach FI. Safe takes your current stock value plus your average monthly stock savings from the last 12 check-ins and lets it grow at 8%, 5% and 2% a year (best, middle, worst). Cash and property savings are added without return. Grey is what you paid in, blue is growth. Rings on the goal line show the age each case reaches it. The status uses the middle case; if you’re behind, Safe says how much more per month would close the gap. It updates with every check-in. It’s an estimate, not a promise.")}
+      ${p("<b style=\"color:var(--ink)\">First property:</b> what you could buy with your property savings (20% equity, minus a safety reserve) and with your income (housing costs at 5% imputed interest, amortisation and upkeep, max. one third of income). Tap it to change every assumption.")}
+      ${p("<b style=\"color:var(--ink)\">Savings goals:</b> your own pots, like a car. Each gets a line in the check-in; choose whether it counts toward FI.")}`)}
+    ${sec("5 · Demo mode",p("Settings → Demo mode shows a made-up person, so you can show Safe to someone without revealing your numbers. Your data stays untouched."))}
+    ${sec("6 · Privacy and backup",`${PV.privacy()}${p("There is no account and no server: data is stored only on this iPhone. If you delete the app, the data is gone, so download a backup file every month or two (Settings → Backup). Restoring a file brings everything back, also on a new iPhone.")}`)}
+    ${sec("Good to know",p("Tap any card or row to see details and how it’s calculated. Swipe a sheet down to close it. Swipe from the left edge to go back."))}
+    <div class="list glass" style="margin-top:6px"><button class="row" data-act="tourreplay" style="border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--accent);font-weight:600;text-align:left">Replay the intro</button><button class="row" data-act="tipsreset" style="border:0;background:transparent;color:var(--accent);font-weight:600;text-align:left">Show tips again</button></div>`,
+    "","",['data-act="guideclose"',"Settings"]);
+}
+const TIPS={
+  home:"This is your overview. Tap any card or row to see details and how it’s calculated.",
+  checkin:"Log each month here, ideally around the 24th. You can edit or delete a month later in History.",
+  history:"Switch between months, quarters and years. Tap a month to edit it.",
+  goals:"Tap “On track” to enter your birth year and FI age and see if you’ll reach your goal. Tap any goal to change its target.",
+  settings:"Change your goals and return assumptions here. Back up regularly: your data lives only on this iPhone. “How Safe works” explains everything."
+};
+function tipCard(k){return `<div class="card glass tip" role="note" style="flex-direction:row;align-items:flex-start;gap:12px;padding:14px 16px"><span style="width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:16px;flex:none">i</span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="font-size:15px;line-height:1.4">${TIPS[k]}</span><button class="link" data-act="tip" data-k="${k}" style="align-self:flex-start;padding:0;font-weight:600">Got it</button></span></div>`;}
 function openFirst(){FL=true;drawFirst("welcome");}
 function drawFirst(step){
   FL=true;
@@ -862,8 +940,8 @@ function drawFirst(step){
       <span style="transform:scale(2.2);margin:34px 0 38px">${appIcon}</span>
       <h1 style="font-size:34px">Welcome to Safe</h1>
       <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and FI progress in one calm place.</p></div>
-      <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On the 24th, log what you saved and split it.")}${featRow(IC.goals,"Watch your goals grow","Savings rate, first property and financial independence.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
-      `<button class="btn" data-act="fl" data-s="${isStandalone()?"demo":"install"}" >Get started</button>`,"");
+      <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On the 24th, log what you saved and split it.")}${featRow(IC.goals,"Know if you’re on track","See when you reach financial independence, in a best, middle and worst case.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
+      `<button class="btn" data-act="tour" data-i="0">Get started</button>`,"");
   }else if(step==="install"){
     const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
     layer.innerHTML=shellFull(`<div class="eyebrow" style="margin-top:8px">Install</div><h1 style="font-size:30px">Add Safe to your Home Screen</h1>
@@ -1059,6 +1137,13 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "due": S.tab="home";render();openDue();break;
     case "later": close();toast("Safe will remind you again tomorrow");break;
     case "flrestore": pickBackup(true);break;
+    case "tour": drawTour(+t.dataset.i);break;
+    case "tourreplay": tourReplay=true;drawTour(0);break;
+    case "tourdone": tourReplay=false;FL=false;openGuide();break;
+    case "guide": openGuide();break;
+    case "guideclose": layer.innerHTML="";FL=false;render(true);break;
+    case "tipsreset": S.tipsSeen={};persist();toast("Tips will show again on each tab");break;
+    case "tip": {S.tipsSeen=Object.assign({},S.tipsSeen,{[t.dataset.k]:true});const c=t.closest(".tip");if(c){c.style.transition="opacity .2s";c.style.opacity="0";setTimeout(()=>render(true),200);}else render(true);persist();break;}
     case "fl": {const s=t.dataset.s;
       if(s==="setup"){openSetup();break;}
       if(s==="demo"){S.welcomed=true;FL=false;layer.innerHTML="";enterDemo();S.tab="home";render();toast("This is example data · tap Start setup when you're ready");break;}
