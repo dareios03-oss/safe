@@ -7,14 +7,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.3.0";
+const VERSION="1.3.1";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ciDay:24,ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -56,9 +56,18 @@ const L=()=>S.months.length-1;
 const cur=()=>S.months[L()]||null;
 const blank=()=>({y:S.today.y,m:S.today.m,income:0,saved:0,stocks:0,property:0,holiday:0,cash:0,stockValue:0,goal:0,pots:{}});
 const ym=(y,m)=>y*12+m-1;
-function dueMonth(){const r=cur();if(!r)return {y:S.today.y,m:S.today.m};const n=ym(r.y,r.m)+1;if(n>ym(S.today.y,S.today.m))return null;return {y:Math.floor(n/12),m:n%12+1};}
+/* check-in day: 1-28 or 0 = last day of the month. Days 1-14 count for the previous month. */
+const ciDayN=()=>S.ciDay==null?24:S.ciDay;
+const ciOff=()=>{const d=ciDayN();return d>=1&&d<=14?1:0;};
+const refK=()=>ym(S.today.y,S.today.m)-ciOff();
+const ordinal=d=>d===0?"last day":d+((d%10===1&&d!==11)?"st":(d%10===2&&d!==12)?"nd":(d%10===3&&d!==13)?"rd":"th");
+const ciWord=()=>ciDayN()===0?"the last day of the month":"the "+ordinal(ciDayN());
+function ciDate(y,m){const k=ym(y,m)+ciOff(),yy=Math.floor(k/12),mm=k%12+1,d=ciDayN()||new Date(yy,mm,0).getDate();return new Date(yy,mm-1,d);}
+const ciLabel=(y,m)=>ciDate(y,m).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+const ciShort=(y,m)=>ciDate(y,m).toLocaleDateString("en-GB",{day:"numeric",month:"long"});
+function dueMonth(){const r=cur(),rk=refK();if(!r){const k=S.setupDone&&S.createdYm!=null?Math.min(S.createdYm,ym(S.today.y,S.today.m)):rk;if(k>rk)return null;return {y:Math.floor(k/12),m:k%12+1};}const n=ym(r.y,r.m)+1;if(n>rk)return null;return {y:Math.floor(n/12),m:n%12+1};}
 const isLogged=()=>!dueMonth();
-const isBehind=()=>{const d=dueMonth();return !!d&&ym(d.y,d.m)<ym(S.today.y,S.today.m);};
+const isBehind=()=>{const d=dueMonth();return !!d&&ym(d.y,d.m)<refK();};
 function avgSave(n){const xs=S.months.slice(-n);return xs.length?xs.reduce((a,r)=>a+r.saved-r.holiday-potOutOf(r),0)/xs.length:0;}
 function projYear(base){
   if(base>=S.fi)return "reached";
@@ -68,7 +77,6 @@ function projYear(base){
   const lr=cur()||blank();return Math.floor((ym(lr.y,lr.m)+n)/12);
 }
 const lastIdx=(y,m)=>{let k=-1;S.months.forEach((r,i)=>{if(ym(r.y,r.m)<=ym(y,m))k=i;});return k;};
-function day24(y,m){return new Date(y,m-1,24).toLocaleDateString("en-GB",{weekday:"long"});}
 
 /* ---------- icons ---------- */
 const IC={
@@ -263,12 +271,16 @@ function home(){
 
 function checkin(){
   const r=cur(),d=dueMonth();
+  if(!d&&!r){const k=S.createdYm!=null?S.createdYm:ym(S.today.y,S.today.m),fy=Math.floor(k/12),fm=k%12+1;
+    return `<div><div class="eyebrow">Monthly check-in</div><h1>${MONTHS[fm-1]} ${fy}</h1></div>
+    <section class="card glass"><span style="font-size:17px;line-height:1.4">Your first check-in is for ${MONTHS[fm-1]}. Safe reminds you on your check-in day.</span>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Due</span><span style="font-size:17px;font-weight:600">${ciLabel(fy,fm)}</span></div></section>`;}
   if(!d){
     const reached=r.goal&&r.saved>=r.goal;
     return `<div><div class="eyebrow">Monthly check-in</div><h1>${MONTHS[r.m-1]} ${r.y}</h1></div>
     <section class="card glass" data-act="info" data-k="goalm" role="button" tabindex="0" aria-label="Monthly goal details"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">${MONTHS[r.m-1]} is logged</span><span class="pill ${reached?"good":"warn"}">${fmt(r.saved)} of ${fmt(r.goal||0)} goal</span></div>
     <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Goal for ${MONTHS[r.m%12]}</span><span style="font-size:22px;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Next check-in</span><span class="num">24 ${MONTHS[r.m%12]}</span></div></section>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Next check-in</span><span class="num">${ciShort(Math.floor((ym(r.y,r.m)+1)/12),(ym(r.y,r.m)+1)%12+1)}</span></div></section>
     <button class="btn" data-act="edit" data-i="${L()}" style="margin-top:60px">Edit ${MONTHS[r.m-1]} check-in</button>`;
   }
   const m=d.m,dn=MONTHS[m-1];
@@ -278,7 +290,7 @@ function checkin(){
     return `<div><div class="eyebrow">Monthly check-in · late</div><h1>${dn} ${d.y}</h1></div>
     <section class="card glass" data-act="info" data-k="late" role="button" tabindex="0" aria-label="Why ${dn} comes first">
       <span class="pill warn">Not logged yet</span>
-      <span style="font-size:17px;line-height:1.4">You missed the ${dn} check-in. Log it now with your numbers from the end of ${dn}, then ${MONTHS[S.today.m-1]} is next.</span>
+      <span style="font-size:17px;line-height:1.4">You missed the ${dn} check-in. Log it now with your numbers from the end of ${dn}, then ${MONTHS[refK()%12]} is next.</span>
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Goal for ${dn}</span><span style="font-size:22px;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
       ${lastRow}
     </section>
@@ -287,7 +299,7 @@ function checkin(){
   return `<div><div class="eyebrow">Monthly check-in</div><h1>${dn} ${d.y}</h1></div>
   <section class="card glass" data-act="info" data-k="goalm" role="button" tabindex="0" aria-label="Monthly goal details">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Goal for ${dn}</span><span style="font-size:22px;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Due</span><span style="font-size:17px;font-weight:600">${day24(d.y,m)}, 24 ${dn}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Due</span><span style="font-size:17px;font-weight:600">${ciLabel(d.y,m)}</span></div>
     ${lastRow}
   </section>
   <button class="btn" data-act="sheet" style="margin-top:80px">${IC.plus}<span>Check in</span></button>`;
@@ -404,6 +416,10 @@ function goals(){
   ${S.pots.length?"":`<p class="note">Saving for something else, like a car or a wedding? Add it as its own goal and give it a line in every check-in.</p>`}`;
 }
 
+function daySelect(id){
+  const opts=[...Array(28)].map((_,i)=>i+1).concat([0]).map(d=>`<option value="${d}"${ciDayN()===d?" selected":""}>${d===0?"Last day":ordinal(d)}</option>`).join("");
+  return `<label class="row" for="${id}" style="border-bottom:1px solid var(--line)"><span style="flex:1">Check-in day</span><select id="${id}" class="dayselect" data-ciday="1" aria-label="Check-in day">${opts}</select></label>`;
+}
 function settings(){
   const fld=(id,label,val,suffix)=>`<label class="row" for="${id}"><span style="flex:1">${label}</span><input class="val" id="${id}" inputmode="decimal" value="${val}" data-set="${id}" aria-label="${label}">${suffix?`<span class="muted">${suffix}</span>`:""}</label>`;
   const rb=(act,label,color,last)=>`<button class="row" data-act="${act}" style="border:0;${last?"":"border-bottom:1px solid var(--line);"}background:transparent;color:${color||"var(--accent)"};font-weight:600;text-align:left">${label}</button>`;
@@ -411,11 +427,12 @@ function settings(){
   <div class="section">Goals &amp; calculations</div>
   <div class="list glass">${fld("s-fi","FI goal (CHF)",fmt(S.fi))}${fld("s-hol","Holiday budget (CHF)",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund (CHF)",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve (CHF)",fmt(S.reserve||0))}${fld("s-ret","Expected return / year",S.ret,"%")}</div>
   <p class="note">Holiday money is shown in totals but not counted for FI. Changes update Home and Goals right away.</p>
-  <div class="section">Reminder</div>
+  <div class="section">Check-in</div>
   <div class="list glass">
-    <div class="row" data-act="switch"><span id="rem-l" style="flex:1">Check-in reminder · 24th, 19:00</span><button class="switch" role="switch" aria-checked="${S.reminder}" aria-labelledby="rem-l" data-act="switch"></button></div>
+    ${daySelect("s-ciday")}
+    <div class="row" data-act="switch"><span id="rem-l" style="flex:1">Reminder · 19:00</span><button class="switch" role="switch" aria-checked="${S.reminder}" aria-labelledby="rem-l" data-act="switch"></button></div>
   </div>
-  <p class="note">From the 24th, Safe reminds you when you open it. Phone notifications follow in the next update. If a month was missed, Safe asks for that month first.</p>
+  <p class="note">Days 1–14 count for the previous month: on the 1st of November you log October. Later days count for the same month. From your check-in day, Safe reminds you when you open it. Phone notifications follow in the next update. If a month was missed, Safe asks for that month first.</p>
   <div class="section">Backup</div>
   <div class="list glass">${rb("backup","Download backup")}${rb("restore","Restore from backup file","",1)}</div>
   <p class="note">The backup is a file saved in your Files app; you choose where, e.g. On My iPhone or iCloud Drive. Last backup: ${backupLabel()}. If it gets older than 2 months, Safe reminds you after a check-in and on Home. Restoring replaces the data on this iPhone.</p>
@@ -537,9 +554,9 @@ function openInfo(k,a){
     <p class="explain">${pt.fi?"This goal counts toward FI because the money stays yours long term.":"Not in FI: it counts in your net worth, but not in FI progress, because you plan to spend it."} You put money in it with its own line in the check-in; that amount comes out of cash.</p>`;
     action=`<button class="btn" data-act="goaledit" data-a="${pt.id}">Edit goal</button><button class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete goal</button>`;
   }else if(k==="late"){
-    const dm=dueMonth(),n=ym(S.today.y,S.today.m)-ym(dm.y,dm.m)+1;
+    const dm=dueMonth(),n=refK()-ym(dm.y,dm.m)+1;
     title="Late check-in";
-    body=`${kv([["Open months",n+" ("+MS[dm.m-1]+" – "+MS[S.today.m-1]+")"],["Next to log",MONTHS[dm.m-1]+" "+dm.y],["Goal for "+MONTHS[dm.m-1],chf(S.nextGoal)]])}
+    body=`${kv([["Open months",n+" ("+MS[dm.m-1]+" – "+MS[refK()%12]+")"],["Next to log",MONTHS[dm.m-1]+" "+dm.y],["Goal for "+MONTHS[dm.m-1],chf(S.nextGoal)]])}
     <p class="explain">Safe always asks for the oldest missing month first, so your history has no gaps. Enter what you saved in ${MONTHS[dm.m-1]} and your portfolio value at the end of ${MONTHS[dm.m-1]}. A close estimate is fine. Right after saving, the next open month is offered.</p>`;
   }else if(k==="cur"){
     title="Currency";
@@ -748,7 +765,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency"];
+const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
@@ -834,7 +851,7 @@ function openDue(){
   const d=dueMonth()||{y:S.today.y,m:S.today.m},late=isBehind(),dn=MONTHS[d.m-1];
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="due-t" style="--g1:var(--sheet);--g2:var(--sheet)">
   <span style="transform:scale(1.5);margin:8px 0 6px">${appIcon}</span><h2 id="due-t" style="margin:6px 0 0;font-size:22px">Check-in due</h2>
-  <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${late?`You haven't logged ${dn} yet. Log it now, then ${MONTHS[S.today.m-1]} is next.`:`It's the 24th. Log what you saved in ${dn} so your dashboard and FI progress stay up to date.`}</p>
+  <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${late?`You haven't logged ${dn} yet. Log it now, then ${MONTHS[refK()%12]} is next.`:`It's your check-in day. Log what you saved in ${dn} so your dashboard and FI progress stay up to date.`}</p>
   <button class="btn" data-act="sheet" style="align-self:stretch;margin-top:8px">${late?`Check in ${dn}`:"Start check-in"}</button>
   <button class="link" data-act="later" style="font-size:17px">Remind me tomorrow</button></div>`;
 }
@@ -881,7 +898,7 @@ const PV={ /* mini previews of real app parts, drawn with sample numbers */
     <div class="pv-row" style="width:100%;text-align:left"><span style="width:32px;height:38px;border-radius:7px;background:var(--field);border:1px solid var(--fieldb);display:flex;align-items:flex-end;justify-content:center;font-size:8px;font-weight:700;color:var(--accent);padding-bottom:4px;box-sizing:border-box;flex:none">JSON</span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:600">Safe-backup-2026-10.json</span><span class="muted" style="font-size:11px">Saved in Files · iCloud Drive</span></span></div></div>`
 };
 const TOUR=[
-  {pv:"checkin",t:"Check in once a month",s:"On the 24th, enter your income and what you saved, then split it into stocks, cash, property, holiday and your own goals. It takes about two minutes."},
+  {pv:"checkin",t:"Check in once a month",s:"On your check-in day (you pick it), enter your income and what you saved, then split it into stocks, cash, property, holiday and your own goals. It takes about two minutes."},
   {pv:"home",t:"See where you stand",s:"Home shows your net worth and every pot. Stocks show what you paid in, with today’s value below, because markets move. History compares months, quarters and years."},
   {pv:"ontrack",t:"Know if you’re on track",s:"Set your FI goal and the age you want to reach it. Safe projects your money at 8%, 5% and 2% a year, based on your real monthly average, and shows the age you reach the goal. It also tells you what first home you could afford."},
   {pv:"privacy",t:"Private by design",s:"No account, no bank login, no server. Your numbers never leave this iPhone. Download a backup file now and then; Safe reminds you when it’s time."}
@@ -910,7 +927,7 @@ function openGuide(){
   const p=t=>`<p class="explain" style="margin:0">${t}</p>`;
   layer.innerHTML=shellFull(`<h1 style="font-size:32px;margin-top:8px">How Safe works</h1>
     ${p("Safe is a calm monthly tracker for your savings and investments. You log one check-in a month; Safe turns it into an overview, a history and an honest answer to “am I on track?”.")}
-    ${sec("1 · Monthly check-in",`${PV.checkin()}${p("Around the 24th, enter your income, what you saved and how you split it: stocks (with the portfolio’s current value), cash, property savings, holiday budget and your own goals. Missed a month? Safe asks for the oldest open month first, so there are no gaps.")}`)}
+    ${sec("1 · Monthly check-in",`${PV.checkin()}${p("On your check-in day (pick it in Settings → Check-in), enter your income, what you saved and how you split it: stocks (with the portfolio’s current value), cash, property savings, holiday budget and your own goals. Missed a month? Safe asks for the oldest open month first, so there are no gaps.")}`)}
     ${sec("2 · Home",`${PV.home()}${p("Net worth is everything together. Stocks show what you paid in (big) and today’s market value (small), because the value moves every day. Cash shows whether your emergency fund is filled. The savings rate is the share of your income you saved.")}`)}
     ${sec("3 · History",p("Compare months, quarters or years: how much you saved, where it went and your market gain. Tap a month to edit or delete it."))}
     ${sec("4 · Goals and On track",`${PV.ontrack()}${p("<b style=\"color:var(--ink)\">FI goal:</b> the amount at which you could live from your money. Holiday money and goals not marked “count toward FI” are left out.")}
@@ -925,7 +942,7 @@ function openGuide(){
 }
 const TIPS={
   home:"This is your overview. Tap any card or row to see details and how it’s calculated.",
-  checkin:"Log each month here, ideally around the 24th. You can edit or delete a month later in History.",
+  checkin:"Log each month here, ideally on your check-in day. You can edit or delete a month later in History.",
   history:"Switch between months, quarters and years. Tap a month to edit it.",
   goals:"Tap “On track” to enter your birth year and FI age and see if you’ll reach your goal. Tap any goal to change its target.",
   settings:"Change your goals and return assumptions here. Back up regularly: your data lives only on this iPhone. “How Safe works” explains everything."
@@ -940,7 +957,7 @@ function drawFirst(step){
       <span style="transform:scale(2.2);margin:34px 0 38px">${appIcon}</span>
       <h1 style="font-size:34px">Welcome to Safe</h1>
       <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and FI progress in one calm place.</p></div>
-      <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On the 24th, log what you saved and split it.")}${featRow(IC.goals,"Know if you’re on track","See when you reach financial independence, in a best, middle and worst case.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
+      <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On a day you choose, log what you saved and split it.")}${featRow(IC.goals,"Know if you’re on track","See when you reach financial independence, in a best, middle and worst case.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
       `<button class="btn" data-act="tour" data-i="0">Get started</button>`,"");
   }else if(step==="install"){
     const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
@@ -952,10 +969,12 @@ function drawFirst(step){
   }else if(step==="notify"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:40px">
       <span class="glass" style="width:84px;height:84px;border-radius:28px;display:flex;align-items:center;justify-content:center;color:var(--accent);margin-bottom:14px">${ICS.bell}</span>
-      <h1 style="font-size:30px">Get a reminder on the 24th?</h1>
-      <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:310px">One reminder a month, on the 24th at 19:00, so you don't forget your check-in. Nothing else.</p></div>
-      <div class="glass" style="display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:22px;margin-top:18px;text-align:left" aria-label="Preview of the notification">${appIcon}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="display:flex;justify-content:space-between;font-size:15px"><b>Safe</b><span class="muted" style="font-size:13px">24th, 19:00</span></span><span style="font-size:15px;font-weight:600">Time for your monthly check-in</span><span class="muted" style="font-size:15px">Log what you saved this month.</span></span></div>`,
-      `<button class="btn" data-act="fl" data-s="ask">Allow notifications</button>`,`<button class="link" data-act="fl" data-s="no">Not now</button>`);
+      <h1 style="font-size:30px">Your check-in day</h1>
+      <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:310px">Pick a day that suits you, for example just after your salary arrives. Safe reminds you once a month on that day at 19:00. Nothing else.</p></div>
+      <div class="list glass" style="margin-top:14px">${daySelect("fl-ciday")}</div>
+      <p class="note" style="margin-top:-4px">${ciOff()?"Days 1–14 count for the previous month: on the 1st of November you log October.":`You log the month you're in: on ${ciDayN()===0?"the last day":"the "+ordinal(ciDayN())} of October you log October.`} You can change it any time in Settings.</p>
+      <div class="glass" style="display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:22px;margin-top:18px;text-align:left" aria-label="Preview of the notification">${appIcon}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="display:flex;justify-content:space-between;font-size:15px"><b>Safe</b><span class="muted" style="font-size:13px">${ciDayN()===0?"Last day":ordinal(ciDayN())}, 19:00</span></span><span style="font-size:15px;font-weight:600">Time for your monthly check-in</span><span class="muted" style="font-size:15px">Log what you saved ${ciOff()?"last":"this"} month.</span></span></div>`,
+      `<button class="btn" data-act="fl" data-s="ask">Allow reminder</button>`,`<button class="link" data-act="fl" data-s="no">Not now</button>`);
   }
 }
 function askNotifications(){
@@ -974,7 +993,7 @@ function finishFirst(reminder){
   if(firstDone)return;firstDone=true;
   S.reminder=!!reminder;S.setupDone=true;if(S.createdYm==null)S.createdYm=ym(S.today.y,S.today.m);
   FL=false;layer.innerHTML="";S.tab="home";render();
-  toast(reminder?"You're set · reminder on the 24th":"You're set · turn on the reminder any time in Settings");
+  toast(reminder?`You're set · reminder on ${ciWord()}`:"You're set · turn on the reminder any time in Settings");
 }
 
 /* setup: add past months (also used later for older history) */
@@ -1123,7 +1142,7 @@ document.getElementById("frame").addEventListener("click",e=>{
       S.hkey=S.hmode==="month"?`${ref.y}-${ref.m}`:S.hmode==="quarter"?`${ref.y}-Q${Math.ceil(ref.m/3)}`:`${ref.y}`;
       close();render();break;}
     case "hprev": case "hnext": step(a==="hnext"?1:-1);break;
-    case "switch": {S.reminder=!S.reminder;const sw=t.matches(".switch")?t:t.querySelector(".switch");sw.setAttribute("aria-checked",S.reminder);}toast(S.reminder?"Reminder on · 24th at 19:00":"Reminder off");break;
+    case "switch": {S.reminder=!S.reminder;const sw=t.matches(".switch")?t:t.querySelector(".switch");sw.setAttribute("aria-checked",S.reminder);}toast(S.reminder?`Reminder on · ${ciWord()} at 19:00`:"Reminder off");break;
     case "gfi": {const sw=document.getElementById("g-fi");sw.setAttribute("aria-checked",sw.getAttribute("aria-checked")!=="true");break;}
     case "backup": downloadBackup().then(ok=>{if(!ok){toast("Backup cancelled");return;}S.lastBackup=new Date().toISOString();S.backupYm=ym(S.today.y,S.today.m);document.querySelectorAll(".toast").forEach(x=>x.remove());render(true);toast("Backup saved");});break;
     case "restore": pickBackup(false);break;
@@ -1161,6 +1180,7 @@ document.getElementById("frame").addEventListener("click",e=>{
 });
 function step(d){const ps=periods(S.hmode);if(!ps.length)return;let pi=ps.findIndex(p=>p.k===S.hkey);pi=Math.min(Math.max(pi+d,0),ps.length-1);S.hkey=ps[pi].k;render(true);}
 document.getElementById("frame").addEventListener("change",e=>{
+  if(e.target.dataset.ciday){S.ciDay=+e.target.value;persist();if(FL&&layer.querySelector("#fl-ciday")){drawFirst("notify");}else{render(true);toast(`Check-in day · ${ciDayN()===0?"last day of the month":ordinal(ciDayN())}`);}return;}
   const su=e.target.dataset.su;
   if(su&&SU){const fm=+document.getElementById("su-fm").value,fy=+document.getElementById("su-fy").value;let k=ym(fy,fm);const maxK=SU.hist?SU.toK-1:SU.toK;if(k>maxK)k=maxK;SU.fromK=k;SU.pastFrom=k;fixPlan();drawSetup();return;}
 });
@@ -1205,7 +1225,7 @@ function maybeDue(){
   if(!S.setupDone||S.demo||layer.innerHTML)return;
   const d=dueMonth();if(!d)return;
   const key=`${S.today.y}-${S.today.m}-${S.today.d}`;if(S.lastDuePrompt===key)return;
-  if(isBehind()||S.today.d>=24){S.lastDuePrompt=key;persist();openDue();}
+  if(isBehind()||new Date(S.today.y,S.today.m-1,S.today.d)>=ciDate(d.y,d.m)){S.lastDuePrompt=key;persist();openDue();}
 }
 SafeStore.load().then(st=>{
   if(st){PKEYS.forEach(k=>{if(st[k]!==undefined)S[k]=st[k];});REAL=st.real||null;}
