@@ -7,14 +7,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.1.8";
+const VERSION="1.2.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -38,8 +38,8 @@ function demoData(){
     ms.push({y,m,income,saved,stocks:st,property:pr,holiday:ho,pots,cash:saved-st-pr-ho-(pots.demo1||0),stockValue:Math.round(v),goal:2700,est:false});}
   return {months:ms,start:{cash:9000,property:1500,holiday:300,stockValue:4000,paid:3600},pots:[{id:"demo1",name:"New car",target:12000,fi:false,color:"#E0457B"}],nextGoal:2700};
 }
-function enterDemo(){if(S.demo)return;REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});}
-function leaveDemo(){if(!S.demo)return;Object.assign(S,REAL||emptyData(),{demo:false,hkey:null});REAL=null;}
+function enterDemo(){if(S.demo)return;REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,birthYear:S.birthYear,fiAge:S.fiAge,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{birthYear:1994,fiAge:50,demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});}
+function leaveDemo(){if(!S.demo)return;Object.assign(S,{birthYear:0,fiAge:50},REAL||emptyData(),{demo:false,hkey:null});REAL=null;}
 const backupLabel=()=>S.lastBackup?new Date(S.lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}):"never";
 const backupOverdue=()=>S.months.length>0&&ym(S.today.y,S.today.m)-(S.backupYm??S.createdYm??ym(S.today.y,S.today.m))>=2;
 
@@ -116,6 +116,16 @@ function propResults(){
   ${(()=>{const kv=rows=>`<div class="field">${rows.map(x=>`<div class="kv"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join("")}</div>`;
   return kv([["Property savings",chf(b.property)],["− Safety reserve",chf(p.reserve)],["= Usable equity",chf(p.usable)],[`Price with ${fmtPct(S.equity)} down payment`,chf(p.byEq)],[`Income per year${p.manualInc?" (entered)":" (check-ins)"}`,p.inc?chf(p.inc):"–"],["Price your income allows",p.inc?chf(p.byInc):"–"],["Mortgage at max. price",chf(p.max-p.need)],["Housing costs (calculated)",chf(p.cost)+"/month"]]);})()}`;
 }
+function wireOnTrack(){
+  const res=document.getElementById("ot-res");if(!res)return;
+  const draw=()=>{const o=onTrack();res.innerHTML=o.by?`${onTrackChart(o)}<div class="field" style="margin-top:8px">${[["Best case",o.cases.best.end,"var(--goodline)"],["Middle case",o.cases.mid.end,"var(--accent)"],["Worst case",o.cases.worst.end,"var(--prop)"]].map(x=>`<div class="kv"><span class="muted">${x[0]} at ${S.fiAge}</span><b style="color:${x[2]}">${chf(x[1])}</b></div>`).join("")}<div class="kv"><span class="muted">Goal</span><b>${chf(S.fi)}</b></div>${o.status==="behind"?`<div class="kv"><span class="muted">Extra into stocks to reach it (middle case)</span><b>${chf(o.extra)}/month</b></div>`:""}</div>`:`<p class="explain">Enter your birth year below to see the projection.</p>`;};
+  draw();
+  const sh=res.closest(".sheet");
+  sh.addEventListener("input",e=>{const id=e.target.dataset.ot;if(!id)return;const v=parse(e.target.value);
+    if(id==="birthYear"){S.birthYear=v>1900&&v<=S.today.y?v:0;}else if(id==="fiAge"){if(v>=18&&v<=100)S.fiAge=v;}else if(id==="fi"){if(v>0)S.fi=v;}else{S.ot=Object.assign({best:8,mid:5,worst:2},S.ot||{});if(v>=-20&&v<=30)S.ot[id]=v;}
+    persist();draw();});
+  sh.addEventListener("focusout",()=>{render(true);});
+}
 function wireProp(){
   const res=document.getElementById("pp-res");if(!res)return;res.innerHTML=propResults();
   const sh=res.closest(".sheet");
@@ -126,6 +136,75 @@ function wireProp(){
   sh.addEventListener("focusout",()=>{render(true);});
   sh.addEventListener("focusin",e=>{if(e.target.matches("input"))setTimeout(()=>e.target.select(),0);});
 }
+/* ---------- on track for FI: three return cases on invested money ---------- */
+const kfmt=v=>{const a=Math.abs(v);return a>=1e6?(Math.round(v/1e5)/10).toString().replace(/\.0$/,"")+"M":a>=1e3?Math.round(v/1e3)+"k":String(Math.round(v));};
+function onTrack(){
+  const b=bal(L()),ot=Object.assign({best:8,mid:5,worst:2},S.ot||{});
+  const nowR=cur()||{y:S.today.y,m:S.today.m},nowK=ym(nowR.y,nowR.m);
+  const by=S.birthYear||0,targetK=by?ym(by+S.fiAge,7):nowK+12*20;
+  const n=Math.max(targetK-nowK,0);
+  const xs=S.months.slice(-12),cnt=xs.length||1;
+  const mStocks=xs.reduce((a,r)=>a+r.stocks,0)/cnt;
+  const mFi=xs.reduce((a,r)=>a+r.saved-r.holiday-potOutOf(r),0)/cnt;
+  const mOther=mFi-mStocks;
+  const inv0=b.value,oth0=b.fi-b.value;
+  const run=pct=>{const r=pct/100/12,pts=[];let inv=inv0,oth=oth0;pts.push(inv+oth);for(let k=1;k<=n;k++){inv=inv*(1+r)+mStocks;oth+=mOther;if(k%3===0||k===n)pts.push(inv+oth);}return {end:inv+oth,pts};};
+  const cases={best:run(ot.best),mid:run(ot.mid),worst:run(ot.worst)};
+  const r=ot.mid/100/12,g=Math.pow(1+r,n);
+  const needStocks=n>0?(S.fi-inv0*g-oth0-mOther*n)*(r?r/(g-1):1/n):0;
+  const extra=Math.max(needStocks-mStocks,0);
+  let reachK=null;{let inv=inv0,oth=oth0;for(let k=0;k<=1200;k++){if(inv+oth>=S.fi){reachK=nowK+k;break;}inv=inv*(1+r)+mStocks;oth+=mOther;}}
+  const status=!by?"set":cases.mid.end>=S.fi?(reachK!=null&&reachK<=targetK-12?"ahead":"on"):"behind";
+  return {b,ot,by,nowK,targetK,n,mStocks,mOther,mFi,cases,extra,reachK,status,hist:S.months.map((m,i)=>({k:ym(m.y,m.m),v:bal(i).fi}))};
+}
+function onTrackChart(o){
+  const W=340,H=190,pl=8,pr=46,pt=14,pb=26;
+  const histFrom=o.hist.length?Math.max(o.hist[0].k,o.nowK-120):o.nowK;
+  const k0=histFrom,k1=Math.max(o.targetK,o.nowK+12);
+  const vmax=Math.max(o.cases.best.end,S.fi*1.08,...o.hist.map(h=>h.v),1);
+  const X=k=>pl+(k-k0)/(k1-k0||1)*(W-pl-pr),Y=v=>pt+(1-Math.max(v,0)/vmax)*(H-pt-pb);
+  const line=(c,col,dash,w)=>{const p=c.pts.map((v,i)=>{const k=Math.min(o.nowK+i*3,o.nowK+o.n);return `${X(k).toFixed(1)},${Y(v).toFixed(1)}`;}).join(" ");return `<polyline points="${p}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" ${dash?'stroke-dasharray="5 4"':""}/>`;};
+  const band=(()=>{const up=o.cases.best.pts.map((v,i)=>`${X(Math.min(o.nowK+i*3,o.nowK+o.n)).toFixed(1)},${Y(v).toFixed(1)}`),dn=o.cases.worst.pts.map((v,i)=>`${X(Math.min(o.nowK+i*3,o.nowK+o.n)).toFixed(1)},${Y(v).toFixed(1)}`).reverse();return `<polygon points="${up.concat(dn).join(" ")}" fill="var(--accent)" opacity=".08"/>`;})();
+  const hist=o.hist.filter(h=>h.k>=histFrom);
+  const histLine=hist.length?`<polyline points="${hist.map(h=>`${X(h.k).toFixed(1)},${Y(h.v).toFixed(1)}`).join(" ")} ${X(o.nowK).toFixed(1)},${Y(o.cases.mid.pts[0]).toFixed(1)}" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>`:"";
+  const ticks=[0,.25,.5,.75,1].map(f=>f*vmax).filter((v,i)=>i>0);
+  const yr=k=>Math.floor(k/12),age=k=>o.by?yr(k)-o.by:null;
+  const lab=(k,t,anchor)=>`<text x="${X(k).toFixed(1)}" y="${H-8}" text-anchor="${anchor}" font-size="10" fill="var(--muted)">${t}</text>`;
+  const endY=c=>Y(c.end);
+  const ends=[["best",o.cases.best,"var(--goodline)"],["mid",o.cases.mid,"var(--accent)"],["worst",o.cases.worst,"var(--prop)"]];
+  let ly=ends.map(e=>endY(e[1]));for(let i=1;i<3;i++)if(ly[i]-ly[i-1]<13)ly[i]=ly[i-1]+13;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projection of your FI money to age ${S.fiAge}" style="display:block;overflow:visible">
+    ${ticks.map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/>${Math.abs(Y(v)-Y(S.fi))>12?`<text x="${pl+2}" y="${(Y(v)-4).toFixed(1)}" font-size="9.5" fill="var(--muted)">${kfmt(v)}</text>`:""}`).join("")}
+    <line x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}" stroke="var(--line)"/>
+    ${band}
+    <line x1="${pl}" x2="${W-pr}" y1="${Y(S.fi).toFixed(1)}" y2="${Y(S.fi).toFixed(1)}" stroke="var(--soft)" stroke-width="1.2" stroke-dasharray="3 4"/>
+    <text x="${pl+2}" y="${(Y(S.fi)-5).toFixed(1)}" font-size="10" fill="var(--muted)">Goal ${kfmt(S.fi)}</text>
+    ${o.by?`<line x1="${X(o.targetK).toFixed(1)}" x2="${X(o.targetK).toFixed(1)}" y1="${pt}" y2="${H-pb}" stroke="var(--soft)" stroke-dasharray="2 4"/>`:""}
+    ${line(o.cases.worst,"var(--prop)",true,1.6)}${line(o.cases.best,"var(--goodline)",true,1.6)}${line(o.cases.mid,"var(--accent)",false,2.4)}
+    ${histLine}
+    <circle cx="${X(o.nowK).toFixed(1)}" cy="${Y(o.cases.mid.pts[0]).toFixed(1)}" r="4" fill="var(--ink)"/>
+    ${ends.map((e,i)=>`<text x="${W-pr+4}" y="${(ly[i]+3).toFixed(1)}" font-size="10" font-weight="700" fill="${e[2]}">${kfmt(e[1].end)}</text>`).join("")}
+    ${X(o.nowK)-X(k0)>70?lab(k0,String(yr(k0)),"start")+lab(o.nowK,"Now"+(o.by?" · "+age(o.nowK):""),"middle"):`<text x="${Math.max(pl,X(o.nowK)-14).toFixed(1)}" y="${H-8}" font-size="10" fill="var(--muted)">Now${o.by?" · age "+age(o.nowK):""}</text>`}${lab(o.targetK,(o.by?"Age "+S.fiAge+" · ":"")+yr(o.targetK),"end")}
+  </svg>`;
+}
+function onTrackCard(){
+  const o=onTrack();
+  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Enter your birth year and target age to see if you reach FI in time, with best, middle and worst case.</span></section>`;
+  const st={on:["good","On track"],ahead:["good","Ahead"],behind:["warn","Behind"]}[o.status];
+  const m=o.cases.mid.end;
+  return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">On track for FI by ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
+    <span class="muted" style="font-size:14px;line-height:1.4">${o.status==="behind"?`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}. About <b style="color:var(--ink)">${chf(o.extra)} more per month</b> into stocks closes the gap.`:`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}${o.reachK!=null?`, reaching ${kfmt(S.fi)} around ${Math.floor(o.reachK/12)}${o.by?" (age "+(Math.floor(o.reachK/12)-o.by)+")":""}`:""}.`}</span>
+    ${onTrackChart(o)}
+    <div style="display:flex;justify-content:space-between;gap:6px;font-size:12px">
+      <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--goodline)"></i><span class="muted">Best ${fmtPct(o.ot.best)}</span></span>
+      <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2.5px solid var(--accent)"></i><span class="muted">Middle ${fmtPct(o.ot.mid)}</span></span>
+      <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--prop)"></i><span class="muted">Worst ${fmtPct(o.ot.worst)}</span></span>
+    </div>
+    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month for FI (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)||0} check-ins; updates with every check-in. Only invested money earns the return.</span>
+  </section>`;
+}
+
 /* ---------- views ---------- */
 function home(){
   const i=L(),b=bal(i),p=bal(i-1),has=!!cur(),r=cur()||blank();
@@ -298,6 +377,7 @@ function goals(){
       <span class="muted" style="font-size:12px;text-align:right;line-height:1.4">at avg ${chf(avg)}/month<br>and ${S.ret}% return per year</span>
     </div>
   </section>
+  ${onTrackCard()}
   ${propCard(b)}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="section" style="margin:0">Savings goals</div><button class="link" data-act="addgoal" style="font-size:17px">+ Add</button></div>
   <div class="list glass">
@@ -408,6 +488,16 @@ function openInfo(k,a){
     <div class="field">${f("rate","Interest rate used",pp.rate,"%","Banks calculate with about 5%")}${f("upkeep","Upkeep per year",pp.upkeep,"%","Of the price")}${f("amortTo","Pay mortgage down to",pp.amortTo,"%","Of the price, usually two thirds")}${f("amortYears","Within",pp.amortYears,"years")}${f("share","Max. share of income",pp.share,"%","Usually one third")}</div>
     <p class="explain">Changes apply right away. Property savings come from your check-ins. Notary and land registry costs are not included.</p>`;
     action=`<button class="btn" data-act="propreset">Reset to bank standard</button>`;
+  }else if(k==="ontrack"){
+    title="On track for FI";
+    const ot=Object.assign({best:8,mid:5,worst:2},S.ot||{});
+    const f=(id,label,val,suf,hint)=>`<label class="row" for="ot-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:""}</span><input class="val" id="ot-${id}" data-ot="${id}" inputmode="decimal" value="${val}" style="width:90px">${suf?`<span class="muted" style="font-size:15px">${suf}</span>`:""}</label>`;
+    body=`<div id="ot-res"></div>
+    <div class="section" style="padding-left:4px">Your target</div>
+    <div class="field">${f("birthYear","Birth year",S.birthYear||"","","Used only to calculate your age")}${f("fiAge","FI by age",S.fiAge,"")}${f("fi","FI goal",fmt(S.fi),"CHF")}</div>
+    <div class="section" style="padding-left:4px">Average return per year</div>
+    <div class="field">${f("best","Best case",ot.best,"%")}${f("mid","Middle case",ot.mid,"%")}${f("worst","Worst case",ot.worst,"%")}</div>
+    <p class="explain">Safe takes your current stock value and lets it grow at each return, adding the average you put into stocks per month. Cash, property savings and other FI money are added without return. The average comes from your last 12 check-ins and updates every month. Markets go up and down; the three lines show a range, not a promise.</p>`;
   }else if(k==="hol"){
     const per=avgOf("holiday",6);
     title="Holiday budget";
@@ -451,6 +541,7 @@ function openInfo(k,a){
   if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
   bindSwipe([...layer.querySelectorAll(".sheet")].pop());
   if(k==="prop")wireProp();
+  if(k==="ontrack")wireOnTrack();
 }
 
 /* ---------- render ---------- */
@@ -640,7 +731,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","ret","emergency"];
+const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","ot","ret","emergency"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
