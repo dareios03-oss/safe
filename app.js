@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.2.2";
+const VERSION="1.2.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -213,7 +213,7 @@ function onTrackCard(){
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2.5px solid var(--accent)"></i><span class="muted">Middle ${fmtPct(o.ot.mid)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--prop)"></i><span class="muted">Worst ${fmtPct(o.ot.worst)}</span></span>
     </div>
-    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month for FI (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)||0} check-ins; updates with every check-in. Only invested money earns the return.</span>
+    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month for FI (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)===1?"check-in":Math.min(S.months.length,12)+" check-ins"}; updates with every check-in. Only invested money earns the return.</span>
   </section>`;
 }
 
