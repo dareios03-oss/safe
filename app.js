@@ -9,14 +9,14 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.3.3";
+const VERSION="1.3.4";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ciDay:24,currency:"CHF",ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ciDay:24,currency:"CHF",since:null,sinceTo:null,ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay","currency"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay","currency","since","sinceTo"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -70,7 +70,12 @@ const ciShort=(y,m)=>ciDate(y,m).toLocaleDateString("en-GB",{day:"numeric",month
 function dueMonth(){const r=cur(),rk=refK();if(!r){const k=S.setupDone&&S.createdYm!=null?Math.min(S.createdYm,ym(S.today.y,S.today.m)):rk;if(k>rk)return null;return {y:Math.floor(k/12),m:k%12+1};}const n=ym(r.y,r.m)+1;if(n>rk)return null;return {y:Math.floor(n/12),m:n%12+1};}
 const isLogged=()=>!dueMonth();
 const isBehind=()=>{const d=dueMonth();return !!d&&ym(d.y,d.m)<refK();};
-function avgSave(n){const xs=S.months.slice(-n);return xs.length?xs.reduce((a,r)=>a+r.saved-r.holiday-potOutOf(r),0)/xs.length:0;}
+/* "Saving since": rough monthly average from the start balances, used for months without a check-in until 12 real ones exist */
+function sinceEst(){if(S.since==null||S.sinceTo==null||S.sinceTo<=S.since)return null;const n=S.sinceTo-S.since,st=S.start||{};return {n,stocks:(st.paid||0)/n,fi:((st.cash||0)+(st.property||0)+(st.paid||0))/n};}
+function blendAvg(n){const xs=S.months.slice(-n),e=sinceEst(),miss=e?Math.max(n-xs.length,0):0,cnt=xs.length+miss;
+  const fi=xs.reduce((a,r)=>a+r.saved-r.holiday-potOutOf(r),0)+(e?e.fi*miss:0),st=xs.reduce((a,r)=>a+r.stocks,0)+(e?e.stocks*miss:0);
+  return {fi:cnt?fi/cnt:0,stocks:cnt?st/cnt:0,real:xs.length,est:miss};}
+function avgSave(n){return blendAvg(n).fi;}
 function projYear(base){
   if(base>=S.fi)return "reached";
   const c=avgSave(12),r=S.ret/100/12;let P=base,n=0;
@@ -153,9 +158,9 @@ function onTrack(){
   const nowR=cur()||{y:S.today.y,m:S.today.m},nowK=ym(nowR.y,nowR.m);
   const by=S.birthYear||0,targetK=by?ym(by+S.fiAge,7):nowK+12*20;
   const n=Math.max(targetK-nowK,0);
-  const xs=S.months.slice(-12),cnt=xs.length||1;
-  const mStocks=xs.reduce((a,r)=>a+r.stocks,0)/cnt;
-  const mFi=xs.reduce((a,r)=>a+r.saved-r.holiday-potOutOf(r),0)/cnt;
+  const ba=blendAvg(12);
+  const mStocks=ba.stocks;
+  const mFi=ba.fi;
   const mOther=mFi-mStocks;
   const inv0=b.value,oth0=b.fi-b.value;
   const paid0=b.fi-b.gain;
@@ -167,7 +172,7 @@ function onTrack(){
   const extra=Math.max(needStocks-mStocks,0);
   let reachK=null;{let inv=inv0,oth=oth0;for(let k=0;k<=1200;k++){if(inv+oth>=S.fi){reachK=nowK+k;break;}inv=inv*(1+r)+mStocks;oth+=mOther;}}
   const status=!by?"set":cases.mid.end>=S.fi?(reachK!=null&&reachK<=targetK-12?"ahead":"on"):"behind";
-  return {b,ot,by,nowK,targetK,chartK,nn,n,mStocks,mOther,mFi,cases,extra,reachK,status,hist:S.months.map((m,i)=>{const x=bal(i);return {k:ym(m.y,m.m),v:x.fi,p:x.fi-x.gain};})};
+  return {ba,b,ot,by,nowK,targetK,chartK,nn,n,mStocks,mOther,mFi,cases,extra,reachK,status,hist:S.months.map((m,i)=>{const x=bal(i);return {k:ym(m.y,m.m),v:x.fi,p:x.fi-x.gain};})};
 }
 function onTrackChart(o){
   const W=340,H=190,pl=8,pr=46,pt=14,pb=26;
@@ -226,7 +231,7 @@ function onTrackCard(){
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2.5px solid var(--accent)"></i><span class="muted">Middle ${fmtPct(o.ot.mid)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--prop)"></i><span class="muted">Worst ${fmtPct(o.ot.worst)}</span></span>
     </div>
-    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month toward your goal (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)===1?"check-in":Math.min(S.months.length,12)+" check-ins"}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
+    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month toward your goal (${chf(o.mStocks)} into stocks) from ${o.ba.real?(o.ba.real===1?"your last check-in":"your last "+o.ba.real+" check-ins"):""}${o.ba.real&&o.ba.est?" plus ":""}${o.ba.est?"your estimate since "+kName(S.since):""}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
   </section>`;
 }
 
@@ -529,9 +534,14 @@ function openInfo(k,a){
     body=`<div id="ot-res"></div>
     <div class="section" style="padding-left:4px">Your target</div>
     <div class="field">${f("birthYear","Birth year",S.birthYear||"","","Used only to calculate your age")}${f("fiAge","Goal age",S.fiAge,"")}${f("chartAge","Show chart until age",S.chartAge||62,"")}${f("fi","Financial goal",fmt(S.fi),CUR())}</div>
+    ${(()=>{const to=S.sinceTo!=null?S.sinceTo:(S.months.length?ym(S.months[0].y,S.months[0].m):(S.createdYm!=null?S.createdYm:ym(S.today.y,S.today.m)));
+      const sk=S.since!=null?S.since:null,sy=sk!=null?kYM(sk):{y:0,m:0},ys=[];for(let y=kYM(to-1).y;y>=S.today.y-40;y--)ys.push(y);const e=sinceEst();
+      return `<div class="section" style="padding-left:4px">Saving since</div><div class="field"><div class="row" style="min-height:58px;gap:8px"><select class="sel" id="ot-sm" aria-label="Saving since, month"><option value="0">Month</option>${MONTHS.map((n,i)=>`<option value="${i+1}"${sy.m===i+1?" selected":""}>${n}</option>`).join("")}</select><select class="sel" id="ot-sy" aria-label="Saving since, year"><option value="0">Year</option>${ys.map(y=>`<option value="${y}"${sy.y===y?" selected":""}>${y}</option>`).join("")}</select></div>
+      ${e?`<div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:15px">Estimated average</span><b>${chf(e.fi)}/month</b></div>`:""}</div>
+      <p class="explain" style="font-size:13px">When you started building the savings you had at setup. Safe divides them by the months since then and uses that average until you have 12 check-ins.</p>`;})()}
     <div class="section" style="padding-left:4px">Average return per year</div>
     <div class="field">${f("best","Best case",ot.best,"%")}${f("mid","Middle case",ot.mid,"%")}${f("worst","Worst case",ot.worst,"%")}</div>
-    <p class="explain">Safe takes your current stock value and lets it grow at each return, adding the average you put into stocks per month. Cash, property savings and other money for your goal are added without return. The average comes from your last 12 check-ins and updates every month. Markets go up and down; the three lines show a range, not a promise.</p>`;
+    <p class="explain">Safe takes your current stock value and lets it grow at each return, adding the average you put into stocks per month. Cash, property savings and other money for your goal are added without return. The average comes from your last 12 check-ins (missing months use your “Saving since” estimate) and updates every month. Markets go up and down; the three lines show a range, not a promise.</p>`;
   }else if(k==="hol"){
     const per=avgOf("holiday",6);
     title="Holiday budget";
@@ -767,7 +777,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay","currency"];
+const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay","currency","since","sinceTo"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
@@ -937,7 +947,7 @@ function openGuide(){
     ${sec("2 · Home",`${PV.home()}${p("Net worth is everything together. Stocks show what you paid in (big) and today’s market value (small), because the value moves every day. Cash shows whether your emergency fund is filled. The savings rate is the share of your income you saved.")}`)}
     ${sec("3 · History",p("Compare months, quarters or years: how much you saved, where it went and your market gain. Tap a month to edit or delete it."))}
     ${sec("4 · Goals and On track",`${PV.ontrack()}${p("<b style=\"color:var(--ink)\">Financial goal:</b> the amount at which you could live from your money. Holiday money and goals not marked “count toward the financial goal” are left out.")}
-      ${p("<b style=\"color:var(--ink)\">On track:</b> tap the card and enter your birth year and the age you want to reach your financial goal. Safe takes your current stock value plus your average monthly stock savings from the last 12 check-ins and lets it grow at 8%, 5% and 2% a year (best, middle, worst). Cash and property savings are added without return. Grey is what you paid in, blue is growth. Rings on the goal line show the age each case reaches it. The status uses the middle case; if you’re behind, Safe says how much more per month would close the gap. It updates with every check-in. It’s an estimate, not a promise.")}
+      ${p("<b style=\"color:var(--ink)\">On track:</b> tap the card and enter your birth year and the age you want to reach your financial goal. Safe takes your current stock value plus your average monthly stock savings from the last 12 check-ins (until you have 12, your “Saving since” estimate fills the gap) and lets it grow at 8%, 5% and 2% a year (best, middle, worst). Cash and property savings are added without return. Grey is what you paid in, blue is growth. Rings on the goal line show the age each case reaches it. The status uses the middle case; if you’re behind, Safe says how much more per month would close the gap. It updates with every check-in. It’s an estimate, not a promise.")}
       ${p("<b style=\"color:var(--ink)\">First property:</b> what you could buy with your property savings (20% equity, minus a safety reserve) and with your income (housing costs at 5% imputed interest, amortisation and upkeep, max. one third of income). Tap it to change every assumption.")}
       ${p("<b style=\"color:var(--ink)\">Savings goals:</b> your own pots, like a car. Each gets a line in the check-in; choose whether it counts toward the financial goal.")}`)}
     ${sec("5 · Demo mode",p("Settings → Demo mode shows a made-up person, so you can show Safe to someone without revealing your numbers. Your data stays untouched."))}
@@ -1055,8 +1065,14 @@ function drawSetup(){
     layer.innerHTML=shellFull(`${bar}<div class="eyebrow">${today?"Your balances today":"Starting balances"}</div><h1 style="font-size:30px">${today?"What you have now":"Before "+kName(SU.fromK)}</h1>
     <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${today?`A rough overview is fine. From ${kName(SU.toK)} on, your monthly check-ins track income, savings and the split exactly.`:`What you had at the end of ${kName(SU.fromK-1)}. Leave anything you don't have at 0.`}</p>
     <div class="list glass">${moneyRow("su-bc","Cash savings",st.cash,"var(--cash)")}${moneyRow("su-bv","Stock portfolio value",st.stockValue,"var(--stocks)")}${moneyRow("su-bp","Stocks paid in so far",st.paid,"var(--stocks)","Everything you invested since opening the depot, without gains")}${moneyRow("su-bpr","Property savings",st.property,"var(--prop)")}${moneyRow("su-bh","Holiday budget",st.holiday,"var(--hol)")}</div>
-    <p class="note">Not sure what you paid into stocks? Use the portfolio value; gains then start counting from here.</p>`,
+    <p class="note">Not sure what you paid into stocks? Use the portfolio value; gains then start counting from here.</p>
+    ${today?(()=>{const sk=SU.since!=null?SU.since:SU.toK-12,sy=kYM(sk),ys=[];for(let y=S.today.y;y>=S.today.y-40;y--)ys.push(y);
+      const ms=MONTHS.map((n,i)=>i+1).filter(m=>ym(sy.y,m)<SU.toK);
+      return `<div class="section">Saving since</div><div class="list glass"><div class="row" style="min-height:58px;gap:8px"><select class="sel" id="su-sm" aria-label="Saving since, month">${ms.map(m=>`<option value="${m}"${m===sy.m?" selected":""}>${MONTHS[m-1]}</option>`).join("")}</select><select class="sel" id="su-sy" aria-label="Saving since, year">${ys.map(y=>`<option value="${y}"${y===sy.y?" selected":""}>${y}</option>`).join("")}</select></div>
+      <div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:15px">Average saved per month</span><b id="su-avg"></b></div></div>
+      <p class="note">When did you start building these savings? Safe divides what you have by the months since then. This rough average is used for “On track” until your own check-ins replace it; after 12 check-ins only real data counts.</p>`;})():""}`,
     nav(nextLabel()),"",BK);
+    suAvg();
   }else{
     const isY=s.k==="year",v=SU.vals[s.id]&&SU.vals[s.id]!=="skip"?SU.vals[s.id]:guessVals(s);
     const ks=isY?setupMonths(s.y):[s.key],title=isY?(ks.length===12?`${s.y} in total`:`${MS[kYM(ks[0]).m-1]} – ${MS[kYM(ks[ks.length-1]).m-1]} ${s.y}`):kName(s.key);
@@ -1094,7 +1110,8 @@ function readSetup(){
   const steps=setupSteps(),s=steps[SU.step],g=id=>{const el=document.getElementById(id);return el?parse(el.value):0;};
   if(!s)return;
   if(s.k==="intro")return;
-  if(s.k==="bal"){SU.start={cash:g("su-bc"),stockValue:g("su-bv"),paid:g("su-bp")||g("su-bv"),property:g("su-bpr"),holiday:g("su-bh")};return;}
+  if(s.k==="bal"){SU.start={cash:g("su-bc"),stockValue:g("su-bv"),paid:g("su-bp")||g("su-bv"),property:g("su-bpr"),holiday:g("su-bh")};
+    const sm=document.getElementById("su-sm"),sy=document.getElementById("su-sy");if(sm&&sy){let k=ym(+sy.value,+sm.value);if(k>=SU.toK)k=SU.toK-1;SU.since=k;}return;}
   const pots={};S.pots.forEach(pt=>{const x=g("su-pot-"+pt.id);if(x)pots[pt.id]=x;});
   SU.vals[s.id]={income:g("su-inc"),saved:g("su-sav"),stocks:g("su-st"),property:g("su-pr"),holiday:g("su-ho"),stockValue:g("su-val"),pots};
 }
@@ -1111,6 +1128,7 @@ function saveSetup(){
       prev=end;}
   });
   S.start=Object.assign({cash:0,property:0,holiday:0,stockValue:0,paid:0},SU.start);
+  if(!SU.hist){const today=SU.fromK===SU.toK;S.since=today&&SU.since!=null?SU.since:null;S.sinceTo=today?SU.toK:null;}
   const have=new Set(S.months.map(r=>ym(r.y,r.m)));
   recs.forEach(r=>{if(!have.has(ym(r.y,r.m)))S.months.push(r);});
   normalize();S.hkey=null;
@@ -1187,7 +1205,14 @@ document.getElementById("frame").addEventListener("click",e=>{
   }
 });
 function step(d){const ps=periods(S.hmode);if(!ps.length)return;let pi=ps.findIndex(p=>p.k===S.hkey);pi=Math.min(Math.max(pi+d,0),ps.length-1);S.hkey=ps[pi].k;render(true);}
+function suAvg(){const o=document.getElementById("su-avg");if(!o||!SU)return;const sm=document.getElementById("su-sm"),sy=document.getElementById("su-sy");let k=ym(+sy.value,+sm.value);if(k>=SU.toK)k=SU.toK-1;
+  const g=id=>{const el=document.getElementById(id);return el?parse(el.value):0;};const n=SU.toK-k,fi=g("su-bc")+g("su-bpr")+(g("su-bp")||g("su-bv"));
+  o.textContent=n>0?`${chf(fi/n)} · ${n} month${n===1?"":"s"}`:"–";}
+document.getElementById("frame").addEventListener("input",()=>suAvg());
 document.getElementById("frame").addEventListener("change",e=>{
+  if(e.target.id==="ot-sy"||e.target.id==="ot-sm"){const m=+document.getElementById("ot-sm").value,y=+document.getElementById("ot-sy").value;
+    if(m&&y){if(S.sinceTo==null)S.sinceTo=S.months.length?ym(S.months[0].y,S.months[0].m):(S.createdYm!=null?S.createdYm:ym(S.today.y,S.today.m));let k=ym(y,m);if(k>=S.sinceTo)k=S.sinceTo-1;S.since=k;persist();render(true);openInfo("ontrack");toast("Saving since "+kName(k));}return;}
+  if(e.target.id==="su-sy"||e.target.id==="su-sm"){if(e.target.id==="su-sy"){readSetup();drawSetup();}suAvg();return;}
   if(e.target.dataset.ciday){S.ciDay=+e.target.value;persist();if(FL&&layer.querySelector("#fl-ciday")){drawFirst("notify");}else{render(true);toast(`Check-in day · ${ciDayN()===0?"last day of the month":ordinal(ciDayN())}`);}return;}
   const su=e.target.dataset.su;
   if(su&&SU){const fm=+document.getElementById("su-fm").value,fy=+document.getElementById("su-fy").value;let k=ym(fy,fm);const maxK=SU.hist?SU.toK-1:SU.toK;if(k>maxK)k=maxK;SU.fromK=k;SU.pastFrom=k;fixPlan();drawSetup();return;}
