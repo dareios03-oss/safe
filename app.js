@@ -2,19 +2,20 @@
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MS=MONTHS.map(m=>m.slice(0,3));
 const fmt=n=>{const r=Math.round(+n||0);return (r<0?"-":"")+String(Math.abs(r)).replace(/\B(?=(\d{3})+(?!\d))/g,"\u2019");};
-const chf=n=>"CHF "+fmt(n);
+const CUR=()=>S.currency==="EUR"?"EUR":"CHF";
+const chf=n=>CUR()+" "+fmt(n);
 const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return isNaN(v)?0:v};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.3.1";
+const VERSION="1.3.2";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
-const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ciDay:24,ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
+const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ciDay:24,currency:"CHF",ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay"];
+const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay","currency"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
@@ -188,7 +189,7 @@ function onTrackChart(o){
   const endY=c=>Y(c.last);
   const ends=[["best",o.cases.best,"var(--goodline)"],["mid",o.cases.mid,"var(--accent)"],["worst",o.cases.worst,"var(--prop)"]];
   let ly=ends.map(e=>endY(e[1]));for(let i=1;i<3;i++)if(ly[i]-ly[i-1]<13)ly[i]=ly[i-1]+13;
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projection of your FI money" style="display:block;overflow:visible">
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projection toward your financial goal" style="display:block;overflow:visible">
     ${ticks.map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/>${Math.abs(Y(v)-Y(S.fi))>14?`<text x="${pl+2}" y="${(Y(v)-4).toFixed(1)}" font-size="9.5" fill="var(--muted)">${kfmt(v)}</text>`:""}`).join("")}
     <line x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}" stroke="var(--line)"/>
     ${areas}
@@ -203,16 +204,16 @@ function onTrackChart(o){
       return ends.map((e,i)=>`<circle cx="${X(o.targetK).toFixed(1)}" cy="${Y(e[1].end).toFixed(1)}" r="3" fill="${e[2]}"/><text x="${(X(o.targetK)-6).toFixed(1)}" y="${(ty[i]+(i===0?-4:3)).toFixed(1)}" text-anchor="end" font-size="9.5" font-weight="700" fill="${e[2]}" paint-order="stroke" stroke="var(--bg)" stroke-width="3">${kfmt(e[1].end)}</text>`).join("");})():""}
     ${o.by?(()=>{const cs=ends.filter(e=>e[1].cross!=null&&e[1].cross>0).map(e=>({x:X(o.nowK+e[1].cross),a:age(o.nowK+e[1].cross),c:e[2]}));let lx=cs.map(c=>c.x);for(let i=1;i<lx.length;i++)if(lx[i]-lx[i-1]<40)lx[i]=lx[i-1]+40;
       return cs.map((c,i)=>`<line x1="${c.x.toFixed(1)}" x2="${c.x.toFixed(1)}" y1="${Y(S.fi).toFixed(1)}" y2="${H-pb}" stroke="${c.c}" stroke-width="1" stroke-dasharray="1 3" opacity=".8"/><circle cx="${c.x.toFixed(1)}" cy="${Y(S.fi).toFixed(1)}" r="3.5" fill="var(--bg)" stroke="${c.c}" stroke-width="2"/><text x="${lx[i].toFixed(1)}" y="${(Y(S.fi)-7).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${c.c}" paint-order="stroke" stroke="var(--bg)" stroke-width="3">age ${c.a}</text>`).join("");})():""}
-    ${X(o.nowK)-X(k0)>70?lab(k0,String(yr(k0)),"start")+lab(o.nowK,"Now"+(o.by?" · "+age(o.nowK):""),"middle"):`<text x="${Math.max(pl,X(o.nowK)-14).toFixed(1)}" y="${H-8}" font-size="10" fill="var(--muted)">Now${o.by?" · age "+age(o.nowK):""}</text>`}${o.by&&o.chartK>o.targetK&&X(o.chartK)-X(o.targetK)>34?lab(o.targetK,"FI age "+S.fiAge,"middle")+lab(o.chartK,"Age "+age(o.chartK),"end"):lab(o.targetK,(o.by?"Age "+S.fiAge+" · ":"")+yr(o.targetK),"end")}
+    ${X(o.nowK)-X(k0)>70?lab(k0,String(yr(k0)),"start")+lab(o.nowK,"Now"+(o.by?" · "+age(o.nowK):""),"middle"):`<text x="${Math.max(pl,X(o.nowK)-14).toFixed(1)}" y="${H-8}" font-size="10" fill="var(--muted)">Now${o.by?" · age "+age(o.nowK):""}</text>`}${o.by&&o.chartK>o.targetK&&X(o.chartK)-X(o.targetK)>34?lab(o.targetK,"Goal age "+S.fiAge,"middle")+lab(o.chartK,"Age "+age(o.chartK),"end"):lab(o.targetK,(o.by?"Age "+S.fiAge+" · ":"")+yr(o.targetK),"end")}
   </svg>`;
 }
 function onTrackCard(){
   const o=onTrack();
-  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Enter your birth year and target age to see if you reach FI in time, with best, middle and worst case.</span></section>`;
+  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Enter your birth year and target age to see if you reach your financial goal in time, with best, middle and worst case.</span></section>`;
   const st={on:["good","On track"],ahead:["good","Ahead"],behind:["warn","Behind"]}[o.status];
   const m=o.cases.mid.end;
   return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">On track for FI by ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
     <span class="muted" style="font-size:14px;line-height:1.4">${o.status==="behind"?`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}. About <b style="color:var(--ink)">${chf(o.extra)} more per month</b> into stocks closes the gap.`:`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}${o.reachK!=null?`, reaching ${kfmt(S.fi)} around ${Math.floor(o.reachK/12)}${o.by?" (age "+(Math.floor(o.reachK/12)-o.by)+")":""}`:""}.`}</span>
     ${onTrackChart(o)}
     <div style="display:flex;gap:16px;font-size:12px">
@@ -224,7 +225,7 @@ function onTrackCard(){
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2.5px solid var(--accent)"></i><span class="muted">Middle ${fmtPct(o.ot.mid)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--prop)"></i><span class="muted">Worst ${fmtPct(o.ot.worst)}</span></span>
     </div>
-    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month for FI (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)===1?"check-in":Math.min(S.months.length,12)+" check-ins"}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
+    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month toward your goal (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)===1?"check-in":Math.min(S.months.length,12)+" check-ins"}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
   </section>`;
 }
 
@@ -252,7 +253,7 @@ function home(){
     <div style="display:flex;flex-direction:column;gap:12px">${cat.map(c=>`
       <div class="catrow" data-act="info" data-k="${c.k}" data-a="${c.a}" role="button" tabindex="0" aria-label="${c.n} details"><span class="dot" style="background:${c.c};box-shadow:0 0 10px ${c.c}"></span>
       <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:17px">${c.n}</span>${c.sub?`<span class="muted" style="font-size:12px">${c.sub}</span>`:""}${c.subHtml||""}</span>
-      ${c.nofi?`<span class="pill" style="color:var(--muted);background:var(--field);border-color:var(--fieldb);align-self:center;font-size:11px">not in FI</span>`:""}
+      ${c.nofi?`<span class="pill" style="color:var(--muted);background:var(--field);border-color:var(--fieldb);align-self:center;font-size:11px">not counted</span>`:""}
       <span class="num" style="font-size:17px">${fmt(c.show!=null?c.show:c.v)}</span></div>`).join("")}</div>
   </section>
   <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
@@ -261,7 +262,7 @@ function home(){
       <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:600">Savings rate</span><span class="muted" style="font-size:13px">avg ${Math.round(avg)}%</span></span>
     </button>
     <button class="card glass" data-act="tab" data-tab="goals" style="text-align:left;gap:6px;padding:16px">
-      <span style="font-size:15px;font-weight:600">FI goal</span><span style="font-size:26px;font-weight:700">${fiPct.toFixed(1)}%</span>
+      <span style="font-size:15px;font-weight:600">Financial goal</span><span style="font-size:26px;font-weight:700">${fiPct.toFixed(1)}%</span>
       <span class="track" style="flex:none;height:7px"><span style="width:${Math.min(fiPct,100)}%"></span></span>
       <span class="muted" style="font-size:13px">of ${S.fi>=1e6?(S.fi/1e6)+"M":fmt(S.fi)} · ≈ ${projYear(fiBase)}</span>
     </button>
@@ -324,7 +325,7 @@ function splitOf(idx){const s={stocks:0,property:0,holiday:0,cash:0,saved:0,gain
 function history(){
   const mode=S.hmode,ps=periods(mode);
   if(!ps.length)return `<h1>History</h1>
-  <section class="card glass"><span class="muted" style="font-size:15px">Saved so far</span><span class="big" style="font-size:40px">CHF 0</span>
+  <section class="card glass"><span class="muted" style="font-size:15px">Saved so far</span><span class="big" style="font-size:40px">${CUR()} 0</span>
   <span class="muted" style="font-size:15px;line-height:1.4">No months yet. Your check-ins and past months show up here.</span></section>
   <div class="list glass"><button data-act="setup" style="border:0;background:transparent;text-align:left;min-height:48px;padding:0 16px;font-size:17px;font-weight:600;color:var(--accent)">+ Add or edit historical data</button></div>`;
   let pi=ps.findIndex(p=>p.k===S.hkey);if(pi<0){pi=ps.length-1;S.hkey=ps[pi].k;}
@@ -381,7 +382,7 @@ function history(){
     <span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="muted" style="font-size:15px">${goal?"Saved vs goal":"Saved"} in ${plabel(p.k,mode,false)}</span>${mode==="month"?'<span style="font-size:15px;font-weight:600;color:var(--accent)">Edit</span>':""}</span>
     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="big" style="font-size:40px">${chf(saved)}</span><span class="muted" style="font-size:15px">${goal?"of "+chf(goal)+" goal":est?"yearly average, no goal set":"no goal set"}</span></div>
     ${goal?`<div style="display:flex;align-items:center;gap:10px"><span class="track"><span style="width:${Math.min(pct,100)}%;${pct>=100?"background:var(--goodline)":""}"></span></span><span style="font-size:15px;font-weight:700">${Math.round(pct)}%</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill ${pct>=100?"good":"warn"}" style="align-self:center">${pct>=100?"Goal reached · +"+fmt(saved-goal):"CHF "+fmt(goal-saved)+" short"}</span><span class="muted" style="font-size:13px">${mode==="month"?"":`Goal reached in ${hit} of ${withGoal.length} months`}</span></div>`:""}
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill ${pct>=100?"good":"warn"}" style="align-self:center">${pct>=100?"Goal reached · +"+fmt(saved-goal):CUR()+" "+fmt(goal-saved)+" short"}</span><span class="muted" style="font-size:13px">${mode==="month"?"":`Goal reached in ${hit} of ${withGoal.length} months`}</span></div>`:""}
     <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:13px" class="muted"><span>Savings rate <b style="color:var(--ink)">${Math.round(saved/inc*100)}%</b></span><span>${prev!==null?`vs ${prevName} <b style="color:${saved>=prev?"var(--good)":"var(--bad)"}">${saved>=prev?"▲":"▼"} ${chf(Math.abs(saved-prev))}</b>`:""}</span></div>
   </section>
   ${mode==="month"?"":listHtml}
@@ -395,8 +396,8 @@ function goals(){
   const gl=[{n:"Holiday budget",v:b.holiday,t:S.holidayTarget,c:"#14A3A0",k:"hol"},{n:"Emergency fund (cash)",v:b.cash,t:S.emergency,c:"#2F7DF6",k:"emer"}]
     .concat(S.pots.map(pt=>({n:esc(pt.name),v:b.pots[pt.id],t:pt.target,c:pt.color,k:"pot",a:pt.id,nofi:!pt.fi})));
   return `<h1>Goals</h1>
-  <section class="card glass" data-act="info" data-k="fi" role="button" tabindex="0" aria-label="Financial independence details">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:17px;font-weight:600">Financial independence</span><span class="muted" style="font-size:13px">Goal ${chf(S.fi)}</span></div>
+  <section class="card glass" data-act="info" data-k="fi" role="button" tabindex="0" aria-label="Financial goal details">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:17px;font-weight:600">Financial goal</span><span class="muted" style="font-size:13px">Goal ${chf(S.fi)}</span></div>
     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="big" style="font-size:40px">${pct.toFixed(1)}%</span><span class="muted" style="font-size:15px">${chf(fiBase)} · excl. holiday${b.potOut?" &amp; spending goals":""}</span></div>
     <span class="track" style="flex:none;height:10px"><span style="width:${Math.min(pct,100)}%;background:linear-gradient(90deg,#5C9BFF,#8E4FD8)"></span></span>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:18px;padding:12px 14px;background:var(--field);border:1px solid var(--fieldb)">
@@ -410,7 +411,7 @@ function goals(){
   <div class="list glass">
     ${gl.map(g=>{const pc=g.t>0?Math.min(Math.max(g.v,0)/g.t*100,100):0;return `
     <div class="grow" data-act="info" data-k="${g.k}" ${g.a?`data-a="${g.a}"`:""} role="button" tabindex="0" aria-label="${g.n} details">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:17px">${g.n}</span>${pc>=100||g.nofi?`<span style="display:flex;gap:8px;font-size:13px">${pc>=100?'<span style="color:var(--good);font-weight:600">✓ reached</span>':""}${g.nofi?'<span class="muted">not in FI</span>':""}</span>`:""}</span><span class="muted num" style="font-size:15px;white-space:nowrap;padding-top:2px">${fmt(Math.min(g.v,g.t))} / ${fmt(g.t)}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:17px">${g.n}</span>${pc>=100||g.nofi?`<span style="display:flex;gap:8px;font-size:13px">${pc>=100?'<span style="color:var(--good);font-weight:600">✓ reached</span>':""}${g.nofi?'<span class="muted">not counted</span>':""}</span>`:""}</span><span class="muted num" style="font-size:15px;white-space:nowrap;padding-top:2px">${fmt(Math.min(g.v,g.t))} / ${fmt(g.t)}</span></div>
       <span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${pc}%;background:${g.c}"></span></span></div>`;}).join("")}
   </div>
   ${S.pots.length?"":`<p class="note">Saving for something else, like a car or a wedding? Add it as its own goal and give it a line in every check-in.</p>`}`;
@@ -425,8 +426,8 @@ function settings(){
   const rb=(act,label,color,last)=>`<button class="row" data-act="${act}" style="border:0;${last?"":"border-bottom:1px solid var(--line);"}background:transparent;color:${color||"var(--accent)"};font-weight:600;text-align:left">${label}</button>`;
   return `<h1>Settings</h1>
   <div class="section">Goals &amp; calculations</div>
-  <div class="list glass">${fld("s-fi","FI goal (CHF)",fmt(S.fi))}${fld("s-hol","Holiday budget (CHF)",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund (CHF)",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve (CHF)",fmt(S.reserve||0))}${fld("s-ret","Expected return / year",S.ret,"%")}</div>
-  <p class="note">Holiday money is shown in totals but not counted for FI. Changes update Home and Goals right away.</p>
+  <div class="list glass">${fld("s-fi","Financial goal ("+CUR()+")",fmt(S.fi))}${fld("s-hol","Holiday budget ("+CUR()+")",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund ("+CUR()+")",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve ("+CUR()+")",fmt(S.reserve||0))}${fld("s-ret","Expected return / year",S.ret,"%")}</div>
+  <p class="note">Holiday money is shown in totals but not counted toward the financial goal. Changes update Home and Goals right away.</p>
   <div class="section">Check-in</div>
   <div class="list glass">
     ${daySelect("s-ciday")}
@@ -439,7 +440,7 @@ function settings(){
   <div class="section">General</div>
   <div class="list glass"><div class="row" data-act="demo"><span id="demo-l" style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span>Demo mode</span><span class="muted" style="font-size:13px">Hides your numbers and shows a made-up person</span></span><button class="switch" role="switch" aria-checked="${!!S.demo}" aria-labelledby="demo-l" data-act="demo"></button></div></div>
   <p class="note">Use it to show Safe to someone. Your data stays untouched; anything changed in Demo mode is discarded when you switch it off.</p>
-  <div class="list glass"><button class="row" data-act="info" data-k="cur" style="border:0;background:transparent;text-align:left;width:100%"><span style="flex:1">Currency</span><span class="muted">CHF</span></button></div>
+  <div class="list glass"><div class="row" style="gap:12px"><span style="flex:1">Currency</span><span class="seg" role="radiogroup" aria-label="Currency">${["CHF","EUR"].map(c=>`<button role="radio" aria-checked="${CUR()===c}" data-act="currency" data-v="${c}">${c}</button>`).join("")}</span></div></div>
   <div class="list glass">${rb("wipe","Delete all data","var(--bad)",1)}</div>
   <p class="note">Removes every month, goal and balance from this iPhone. Backup files you downloaded stay.</p>
   <div class="section">About</div>
@@ -471,7 +472,7 @@ function openInfo(k,a){
     body=`<span class="big">${chf(b.nw)}</span>
     ${kv([["Saved in "+MONTHS[r.m-1],sign(r.saved),col(r.saved)],["Market gain on stocks",sign(mGain),col(mGain)],["Change this month",sign(b.nw-p.nw),col(b.nw-p.nw)]])}
     <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,"var(--accent)",h.v.length-1)}
-    <p class="explain">Net worth adds up cash, the current value of your stocks, property savings and the holiday budget. FI progress leaves out the holiday budget because you plan to spend it.</p>`;
+    <p class="explain">Net worth adds up cash, the current value of your stocks, property savings and the holiday budget. financial goal progress leaves out the holiday budget because you plan to spend it.</p>`;
   }else if(k==="cat"){
     const C={cash:["Cash savings","--cash",b.cash,r.cash,j=>bal(j).cash],stocks:["Stocks","--stocks",b.value,r.stockValue-prevVal,j=>bal(j).value],property:["Property savings","--prop",b.property,r.property,j=>bal(j).property],holiday:["Holiday budget","--hol",b.holiday,r.holiday,j=>bal(j).holiday]}[a];
     const h=last6(C[4]);
@@ -479,8 +480,8 @@ function openInfo(k,a){
     let extra="",text="";
     if(a==="cash"){extra=kv([["Added in "+MONTHS[r.m-1],sign(r.cash),col(r.cash)],["Emergency fund target",chf(S.emergency)],["Still to go",chf(Math.max(S.emergency-b.cash,0))]]);text="Cash gets whatever you don't assign to stocks, property or holiday in the check-in. It also counts toward your emergency fund.";}
     if(a==="stocks"){extra=kv([["Paid in (all time)",chf(b.paid)],["Market gains (all time)",sign(b.gain),col(b.gain)],["Paid in, "+MONTHS[r.m-1],"+"+fmt(r.stocks)],["Market gain, "+MONTHS[r.m-1],sign(mGain),col(mGain)]]);text="Paid in is the money you moved into stocks yourself. Market gains are the portfolio value minus everything you paid in, so you can see what came from you and what came from the market.";}
-    if(a==="property"){extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.property)],["Equity share",S.equity+"%"],["Can buy up to",chf(propCalc(b).max)]]);text=`This is your equity for a first property. At ${S.equity}% equity, every CHF 1 saved lets you buy CHF ${fmt(100/S.equity)} of property.`;action=`<button class="btn" data-act="info" data-k="prop">How the property calculation works</button>`;}
-    if(a==="holiday"){const per=avgOf("holiday",6);extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.holiday)],["Target",chf(S.holidayTarget)],["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Reached in",monthsTo(S.holidayTarget-b.holiday,per)]]);text="Not in FI: the holiday budget counts in your net worth, but not in FI progress, because it's money you plan to spend. Change the target in Settings.";}
+    if(a==="property"){extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.property)],["Equity share",S.equity+"%"],["Can buy up to",chf(propCalc(b).max)]]);text=`This is your equity for a first property. At ${S.equity}% equity, every ${CUR()} 1 saved lets you buy ${CUR()} ${fmt(100/S.equity)} of property.`;action=`<button class="btn" data-act="info" data-k="prop">How the property calculation works</button>`;}
+    if(a==="holiday"){const per=avgOf("holiday",6);extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.holiday)],["Target",chf(S.holidayTarget)],["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Reached in",monthsTo(S.holidayTarget-b.holiday,per)]]);text="Not in the financial goal: the holiday budget counts in your net worth, but not in financial goal progress, because it's money you plan to spend. Change the target in Settings.";}
     body=`<span class="big">${chf(C[2])}</span><span class="pill ${C[3]>=0?"good":"warn"}">${C[3]>=0?"▲":"▼"} ${chf(Math.abs(C[3]))} this month</span>
     <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,`var(${C[1]})`,h.v.length-1)}${extra}<p class="explain">${text}</p>`;
   }else if(k==="goalm"){
@@ -504,9 +505,9 @@ function openInfo(k,a){
     <p class="explain">This adds up the split you entered in each check-in${q.idx.length>1?` for the ${q.idx.length} months in ${plabel(q.k,S.hmode,false)}`:""}. Market gain is the change in portfolio value minus what you paid in, so it's not part of what you saved.</p>`;
   }else if(k==="fi"){
     const base=b.fi,c=avgSave(12),yr=projYear(base);
-    title="Financial independence";
+    title="Financial goal";
     body=`<span class="big">${(base/S.fi*100).toFixed(1)}%</span>
-    ${kv([["Counted for FI",chf(base)],["Goal",chf(S.fi)],["Still to go",chf(Math.max(S.fi-base,0))],["Avg saved / month, excl. holiday",chf(c)],["Expected return",S.ret+"% per year"],["Projected to reach goal","≈ "+yr]])}
+    ${kv([["Counted for financial goal",chf(base)],["Goal",chf(S.fi)],["Still to go",chf(Math.max(S.fi-base,0))],["Avg saved / month, excl. holiday",chf(c)],["Expected return",S.ret+"% per year"],["Projected to reach goal","≈ "+yr]])}
     <p class="explain">The projection adds your average monthly saving and grows everything at the expected return, month by month, until it reaches your goal. It's a rough guide, not a forecast: markets and your savings will vary.</p>`;
     action=`<button class="btn" data-act="tab" data-tab="settings">Change goal or return</button>`;
   }else if(k==="prop"){
@@ -515,34 +516,34 @@ function openInfo(k,a){
     const pp=Object.assign({},PPDEF,S.pp||{});
     body=`<div id="pp-res"></div>
     <div class="section" style="padding-left:4px">Your numbers</div>
-    <div class="field">${f("eq","Down payment (equity)",S.equity,"%")}${f("reserve","Safety reserve",fmt(S.reserve||0),"CHF","Kept aside, not used for the purchase")}${f("income","Income per year",pp.income>0?fmt(pp.income):"","CHF","Empty = from your check-ins · banks use gross")}</div>
+    <div class="field">${f("eq","Down payment (equity)",S.equity,"%")}${f("reserve","Safety reserve",fmt(S.reserve||0),CUR(),"Kept aside, not used for the purchase")}${f("income","Income per year",pp.income>0?fmt(pp.income):"",CUR(),"Empty = from your check-ins · banks use gross")}</div>
     <div class="section" style="padding-left:4px">Bank assumptions</div>
     <div class="field">${f("rate","Interest rate used",pp.rate,"%","Banks calculate with about 5%")}${f("upkeep","Upkeep per year",pp.upkeep,"%","Of the price")}${f("amortTo","Pay mortgage down to",pp.amortTo,"%","Of the price, usually two thirds")}${f("amortYears","Within",pp.amortYears,"years")}${f("share","Max. share of income",pp.share,"%","Usually one third")}</div>
     <p class="explain">Changes apply right away. Property savings come from your check-ins. Notary and land registry costs are not included.</p>`;
     action=`<button class="btn" data-act="propreset">Reset to bank standard</button>`;
   }else if(k==="ontrack"){
-    title="On track for FI";
+    title="On track";
     const ot=Object.assign({best:8,mid:5,worst:2},S.ot||{});
     const f=(id,label,val,suf,hint)=>`<label class="row" for="ot-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:""}</span><input class="val" id="ot-${id}" data-ot="${id}" inputmode="decimal" value="${val}" style="width:90px">${suf?`<span class="muted" style="font-size:15px">${suf}</span>`:""}</label>`;
     body=`<div id="ot-res"></div>
     <div class="section" style="padding-left:4px">Your target</div>
-    <div class="field">${f("birthYear","Birth year",S.birthYear||"","","Used only to calculate your age")}${f("fiAge","FI by age",S.fiAge,"")}${f("chartAge","Show chart until age",S.chartAge||62,"")}${f("fi","FI goal",fmt(S.fi),"CHF")}</div>
+    <div class="field">${f("birthYear","Birth year",S.birthYear||"","","Used only to calculate your age")}${f("fiAge","Goal age",S.fiAge,"")}${f("chartAge","Show chart until age",S.chartAge||62,"")}${f("fi","Financial goal",fmt(S.fi),CUR())}</div>
     <div class="section" style="padding-left:4px">Average return per year</div>
     <div class="field">${f("best","Best case",ot.best,"%")}${f("mid","Middle case",ot.mid,"%")}${f("worst","Worst case",ot.worst,"%")}</div>
-    <p class="explain">Safe takes your current stock value and lets it grow at each return, adding the average you put into stocks per month. Cash, property savings and other FI money are added without return. The average comes from your last 12 check-ins and updates every month. Markets go up and down; the three lines show a range, not a promise.</p>`;
+    <p class="explain">Safe takes your current stock value and lets it grow at each return, adding the average you put into stocks per month. Cash, property savings and other money for your goal are added without return. The average comes from your last 12 check-ins and updates every month. Markets go up and down; the three lines show a range, not a promise.</p>`;
   }else if(k==="hol"){
     const per=avgOf("holiday",6);
     title="Holiday budget";
     body=`<span class="big">${chf(b.holiday)}</span><span class="muted">of ${chf(S.holidayTarget)} target</span>
     ${kv([["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(S.holidayTarget-b.holiday,per)]])}
-    <div class="field"><label class="row" for="t-s-hol"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-hol" data-set="s-hol" inputmode="decimal" value="${fmt(S.holidayTarget)}" style="width:110px"><span class="muted" style="font-size:15px">CHF</span></label></div>
-    <p class="explain">Not in FI: this money counts in your net worth but not in FI progress, because you plan to spend it. Tap the target to change it.</p>`;
+    <div class="field"><label class="row" for="t-s-hol"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-hol" data-set="s-hol" inputmode="decimal" value="${fmt(S.holidayTarget)}" style="width:110px"><span class="muted" style="font-size:15px">${CUR()}</span></label></div>
+    <p class="explain">Not in the financial goal: this money counts in your net worth but not in financial goal progress, because you plan to spend it. Tap the target to change it.</p>`;
   }else if(k==="emer"){
     const per=avgOf("cash",6);
     title="Emergency fund";
     body=`<span class="big">${chf(Math.min(b.cash,S.emergency))}</span><span class="muted">of ${chf(S.emergency)} target · held as cash</span>
     ${kv([["Cash now",chf(b.cash)],["Still to go",chf(Math.max(S.emergency-b.cash,0))],["Avg cash added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(S.emergency-b.cash,per)]])}
-    <div class="field"><label class="row" for="t-s-emer"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-emer" data-set="s-emer" inputmode="decimal" value="${fmt(S.emergency)}" style="width:110px"><span class="muted" style="font-size:15px">CHF</span></label></div>
+    <div class="field"><label class="row" for="t-s-emer"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-emer" data-set="s-emer" inputmode="decimal" value="${fmt(S.emergency)}" style="width:110px"><span class="muted" style="font-size:15px">${CUR()}</span></label></div>
     <p class="explain">${r.income?`The target is about ${(S.emergency/r.income).toFixed(1)} months of income. `:""}It's filled by the cash part of each check-in. Tap the target to change it.</p>`;
   }else if(k==="pot"){
     const pt=S.pots.find(x=>x.id===a);if(!pt)return;
@@ -550,8 +551,8 @@ function openInfo(k,a){
     title=esc(pt.name);
     body=`<span class="big">${chf(v)}</span><span class="muted">of ${chf(pt.target)} target</span>
     <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,pt.color,h.v.length-1)}
-    ${kv([["Still to go",chf(Math.max(pt.target-v,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(pt.target-v,per)],["Counts toward FI",pt.fi?"Yes":"No"]])}
-    <p class="explain">${pt.fi?"This goal counts toward FI because the money stays yours long term.":"Not in FI: it counts in your net worth, but not in FI progress, because you plan to spend it."} You put money in it with its own line in the check-in; that amount comes out of cash.</p>`;
+    ${kv([["Still to go",chf(Math.max(pt.target-v,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(pt.target-v,per)],["Counts toward financial goal",pt.fi?"Yes":"No"]])}
+    <p class="explain">${pt.fi?"This goal counts toward your financial goal because the money stays yours long term.":"Not in the financial goal: it counts in your net worth, but not in financial goal progress, because you plan to spend it."} You put money in it with its own line in the check-in; that amount comes out of cash.</p>`;
     action=`<button class="btn" data-act="goaledit" data-a="${pt.id}">Edit goal</button><button class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete goal</button>`;
   }else if(k==="late"){
     const dm=dueMonth(),n=refK()-ym(dm.y,dm.m)+1;
@@ -560,7 +561,7 @@ function openInfo(k,a){
     <p class="explain">Safe always asks for the oldest missing month first, so your history has no gaps. Enter what you saved in ${MONTHS[dm.m-1]} and your portfolio value at the end of ${MONTHS[dm.m-1]}. A close estimate is fine. Right after saving, the next open month is offered.</p>`;
   }else if(k==="cur"){
     title="Currency";
-    body=`<p class="explain">Safe works in Swiss francs. All amounts, goals and backups use CHF. Other currencies aren't part of the first version.</p>`;
+    body=`<p class="explain">Choose CHF or EUR in Settings. Only the label changes: your amounts are not converted.</p>`;
   }else if(k==="start"){
     title="Start tracking from";
     body=`<p class="explain">Pick the first month you want in your history. Safe asks for your balances just before that month, then for each year either month by month or as one yearly total. Yearly totals show as a monthly average in History.</p>`;
@@ -765,7 +766,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay"];
+const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay","currency"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
@@ -818,9 +819,9 @@ function openGoalSheet(id){
     <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="g-t" style="margin:0;font-size:17px;font-weight:700">${pt?"Edit goal":"New savings goal"}</h2>${XB}</div>
     <div class="field">
       <label class="row" for="g-name"><span style="flex:1">Name</span><input class="val" id="g-name" placeholder="e.g. New car" value="${pt?esc(pt.name):""}" maxlength="24" autocomplete="off" style="width:180px"></label>
-      <label class="row" for="g-target"><span style="flex:1">Target (CHF)</span><input class="val" id="g-target" inputmode="decimal" placeholder="0" value="${pt?fmt(pt.target):""}"></label>
+      <label class="row" for="g-target"><span style="flex:1">Target (${CUR()})</span><input class="val" id="g-target" inputmode="decimal" placeholder="0" value="${pt?fmt(pt.target):""}"></label>
     </div>
-    <div class="field"><div class="row" data-act="gfi" style="min-height:62px"><span id="g-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward FI</span><span class="muted" style="font-size:13px">Leave off for money you plan to spend</span></span><button type="button" class="switch" id="g-fi" role="switch" aria-checked="${pt?pt.fi:false}" aria-labelledby="g-fi-l" data-act="gfi"></button></div></div>
+    <div class="field"><div class="row" data-act="gfi" style="min-height:62px"><span id="g-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward financial goal</span><span class="muted" style="font-size:13px">Leave off for money you plan to spend</span></span><button type="button" class="switch" id="g-fi" role="switch" aria-checked="${pt?pt.fi:false}" aria-labelledby="g-fi-l" data-act="gfi"></button></div></div>
     <p class="note">The goal gets its own line in every check-in. What you put there comes out of cash, and it shows on Home and in Goals.</p>
     <button class="btn" type="submit" id="g-save">${pt?"Save changes":"Add goal"}</button>
     ${pt?`<button type="button" class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete goal</button>`:""}
@@ -851,7 +852,7 @@ function openDue(){
   const d=dueMonth()||{y:S.today.y,m:S.today.m},late=isBehind(),dn=MONTHS[d.m-1];
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="due-t" style="--g1:var(--sheet);--g2:var(--sheet)">
   <span style="transform:scale(1.5);margin:8px 0 6px">${appIcon}</span><h2 id="due-t" style="margin:6px 0 0;font-size:22px">Check-in due</h2>
-  <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${late?`You haven't logged ${dn} yet. Log it now, then ${MONTHS[refK()%12]} is next.`:`It's your check-in day. Log what you saved in ${dn} so your dashboard and FI progress stay up to date.`}</p>
+  <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${late?`You haven't logged ${dn} yet. Log it now, then ${MONTHS[refK()%12]} is next.`:`It's your check-in day. Log what you saved in ${dn} so your dashboard and goal progress stay up to date.`}</p>
   <button class="btn" data-act="sheet" style="align-self:stretch;margin-top:8px">${late?`Check in ${dn}`:"Start check-in"}</button>
   <button class="link" data-act="later" style="font-size:17px">Remind me tomorrow</button></div>`;
 }
@@ -878,10 +879,10 @@ const PV={ /* mini previews of real app parts, drawn with sample numbers */
     <div class="pv-kv"><span class="muted">Income</span><b>6’500</b></div><div class="pv-kv"><span class="muted">Saved</span><b>2’100</b></div>
     <div class="pv-bar"><i style="flex:1080;background:var(--stocks)"></i><i style="flex:520;background:var(--cash)"></i><i style="flex:300;background:var(--prop)"></i><i style="flex:200;background:var(--hol)"></i></div>
     <div class="pv-leg"><span><i style="background:var(--stocks)"></i>Stocks 1’080</span><span><i style="background:var(--cash)"></i>Cash 520</span><span><i style="background:var(--prop)"></i>Property 300</span><span><i style="background:var(--hol)"></i>Holiday 200</span></div></div>`,
-  home:()=>`<div class="pv glass" aria-hidden="true"><span class="muted" style="font-size:12px">Net worth</span><b style="font-size:26px;letter-spacing:-.02em">CHF 70’503</b><span class="pill good" style="align-self:flex-start">▲ CHF 2’905 this month</span>
+  home:()=>`<div class="pv glass" aria-hidden="true"><span class="muted" style="font-size:12px">Net worth</span><b style="font-size:26px;letter-spacing:-.02em">${CUR()} 70’503</b><span class="pill good" style="align-self:flex-start">▲ ${CUR()} 2’905 this month</span>
     ${[["Cash savings","23’745","var(--cash)",.8,"✓ Emergency fund filled"],["Stocks · paid in","26’280","var(--stocks)",.88,"current value 29’853 · volatile"],["Property savings","10’005","var(--prop)",.34,""]].map(r=>`<div class="pv-row"><span style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-size:13px;font-weight:600">${r[0]}</span>${r[4]?`<span class="muted" style="font-size:11px">${r[4]}</span>`:""}<span class="pv-track"><i style="width:${r[3]*100}%;background:${r[2]}"></i></span></span><b style="font-size:14px">${r[1]}</b></div>`).join("")}</div>`,
   ontrack:()=>{const W=300,H=130,X=t=>10+t*(W-50),Y=v=>H-18-v/2.4*(H-30);const curve=(r)=>{let s="";for(let i=0;i<=25;i++){const t=i/25,yrs=i*1.48,v=1000*12*((Math.pow(1+r,yrs)-1)/r)/1e6;s+=`${X(t).toFixed(1)},${Y(v).toFixed(1)} `;}return s;};
-    return `<div class="pv glass" aria-hidden="true"><div class="pv-h"><span>On track for FI by 50?</span><span class="pill good">On track</span></div>
+    return `<div class="pv glass" aria-hidden="true"><div class="pv-h"><span>On track by age 50?</span><span class="pill good">On track</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
       <line x1="10" x2="${W-40}" y1="${Y(1)}" y2="${Y(1)}" stroke="var(--soft)" stroke-dasharray="3 4"/><text x="12" y="${Y(1)-5}" font-size="10" fill="var(--muted)">Goal 1M</text>
       <line x1="${X(.68)}" x2="${X(.68)}" y1="10" y2="${H-18}" stroke="var(--soft)" stroke-dasharray="2 4"/>
@@ -890,7 +891,7 @@ const PV={ /* mini previews of real app parts, drawn with sample numbers */
       <polyline points="${curve(.02)}" fill="none" stroke="var(--prop)" stroke-width="1.8" stroke-dasharray="5 4"/>
       <circle cx="${X(.69)}" cy="${Y(1)}" r="3.5" fill="var(--bg)" stroke="var(--goodline)" stroke-width="2"/><text x="${X(.69)}" y="${Y(1)-7}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--goodline)">age 51</text>
       <circle cx="10" cy="${Y(0)}" r="3.5" fill="var(--ink)"/>
-      <text x="10" y="${H-3}" font-size="10" fill="var(--muted)">Now</text><text x="${X(.68)}" y="${H-3}" text-anchor="middle" font-size="10" fill="var(--muted)">FI age 50</text><text x="${W-40}" y="${H-3}" text-anchor="end" font-size="10" fill="var(--muted)">62</text>
+      <text x="10" y="${H-3}" font-size="10" fill="var(--muted)">Now</text><text x="${X(.68)}" y="${H-3}" text-anchor="middle" font-size="10" fill="var(--muted)">Goal age 50</text><text x="${W-40}" y="${H-3}" text-anchor="end" font-size="10" fill="var(--muted)">62</text>
     </svg>
     <div class="pv-leg"><span><i style="background:var(--goodline)"></i>Best 8%</span><span><i style="background:var(--accent)"></i>Middle 5%</span><span><i style="background:var(--prop)"></i>Worst 2%</span></div></div>`;},
   privacy:()=>`<div class="pv glass" aria-hidden="true" style="align-items:center;text-align:center;gap:10px"><span style="width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent)"><span style="transform:scale(1.4);display:flex">${ICS.lock}</span></span>
@@ -900,7 +901,7 @@ const PV={ /* mini previews of real app parts, drawn with sample numbers */
 const TOUR=[
   {pv:"checkin",t:"Check in once a month",s:"On your check-in day (you pick it), enter your income and what you saved, then split it into stocks, cash, property, holiday and your own goals. It takes about two minutes."},
   {pv:"home",t:"See where you stand",s:"Home shows your net worth and every pot. Stocks show what you paid in, with today’s value below, because markets move. History compares months, quarters and years."},
-  {pv:"ontrack",t:"Know if you’re on track",s:"Set your FI goal and the age you want to reach it. Safe projects your money at 8%, 5% and 2% a year, based on your real monthly average, and shows the age you reach the goal. It also tells you what first home you could afford."},
+  {pv:"ontrack",t:"Know if you’re on track",s:"Set your financial goal and the age you want to reach it. Safe projects your money at 8%, 5% and 2% a year, based on your real monthly average, and shows the age you reach the goal. It also tells you what first home you could afford."},
   {pv:"privacy",t:"Private by design",s:"No account, no bank login, no server. Your numbers never leave this iPhone. Download a backup file now and then; Safe reminds you when it’s time."}
 ];
 let tourReplay=false;
@@ -930,10 +931,10 @@ function openGuide(){
     ${sec("1 · Monthly check-in",`${PV.checkin()}${p("On your check-in day (pick it in Settings → Check-in), enter your income, what you saved and how you split it: stocks (with the portfolio’s current value), cash, property savings, holiday budget and your own goals. Missed a month? Safe asks for the oldest open month first, so there are no gaps.")}`)}
     ${sec("2 · Home",`${PV.home()}${p("Net worth is everything together. Stocks show what you paid in (big) and today’s market value (small), because the value moves every day. Cash shows whether your emergency fund is filled. The savings rate is the share of your income you saved.")}`)}
     ${sec("3 · History",p("Compare months, quarters or years: how much you saved, where it went and your market gain. Tap a month to edit or delete it."))}
-    ${sec("4 · Goals and On track",`${PV.ontrack()}${p("<b style=\"color:var(--ink)\">FI goal:</b> the amount at which you could live from your money. Holiday money and goals not marked “count toward FI” are left out.")}
-      ${p("<b style=\"color:var(--ink)\">On track:</b> tap the card and enter your birth year and the age you want to reach FI. Safe takes your current stock value plus your average monthly stock savings from the last 12 check-ins and lets it grow at 8%, 5% and 2% a year (best, middle, worst). Cash and property savings are added without return. Grey is what you paid in, blue is growth. Rings on the goal line show the age each case reaches it. The status uses the middle case; if you’re behind, Safe says how much more per month would close the gap. It updates with every check-in. It’s an estimate, not a promise.")}
+    ${sec("4 · Goals and On track",`${PV.ontrack()}${p("<b style=\"color:var(--ink)\">Financial goal:</b> the amount at which you could live from your money. Holiday money and goals not marked “count toward the financial goal” are left out.")}
+      ${p("<b style=\"color:var(--ink)\">On track:</b> tap the card and enter your birth year and the age you want to reach your financial goal. Safe takes your current stock value plus your average monthly stock savings from the last 12 check-ins and lets it grow at 8%, 5% and 2% a year (best, middle, worst). Cash and property savings are added without return. Grey is what you paid in, blue is growth. Rings on the goal line show the age each case reaches it. The status uses the middle case; if you’re behind, Safe says how much more per month would close the gap. It updates with every check-in. It’s an estimate, not a promise.")}
       ${p("<b style=\"color:var(--ink)\">First property:</b> what you could buy with your property savings (20% equity, minus a safety reserve) and with your income (housing costs at 5% imputed interest, amortisation and upkeep, max. one third of income). Tap it to change every assumption.")}
-      ${p("<b style=\"color:var(--ink)\">Savings goals:</b> your own pots, like a car. Each gets a line in the check-in; choose whether it counts toward FI.")}`)}
+      ${p("<b style=\"color:var(--ink)\">Savings goals:</b> your own pots, like a car. Each gets a line in the check-in; choose whether it counts toward the financial goal.")}`)}
     ${sec("5 · Demo mode",p("Settings → Demo mode shows a made-up person, so you can show Safe to someone without revealing your numbers. Your data stays untouched."))}
     ${sec("6 · Privacy and backup",`${PV.privacy()}${p("There is no account and no server: data is stored only on this iPhone. If you delete the app, the data is gone, so download a backup file every month or two (Settings → Backup). Restoring a file brings everything back, also on a new iPhone.")}`)}
     ${sec("Good to know",p("Tap any card or row to see details and how it’s calculated. Swipe a sheet down to close it. Swipe from the left edge to go back."))}
@@ -944,7 +945,7 @@ const TIPS={
   home:"This is your overview. Tap any card or row to see details and how it’s calculated.",
   checkin:"Log each month here, ideally on your check-in day. You can edit or delete a month later in History.",
   history:"Switch between months, quarters and years. Tap a month to edit it.",
-  goals:"Tap “On track” to enter your birth year and FI age and see if you’ll reach your goal. Tap any goal to change its target.",
+  goals:"Tap “On track” to enter your birth year and goal age and see if you’ll reach your goal. Tap any goal to change its target.",
   settings:"Change your goals and return assumptions here. Back up regularly: your data lives only on this iPhone. “How Safe works” explains everything."
 };
 function tipCard(k){return `<div class="card glass tip" role="note" style="flex-direction:row;align-items:flex-start;gap:12px;padding:14px 16px"><span style="width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:16px;flex:none">i</span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="font-size:15px;line-height:1.4">${TIPS[k]}</span><button class="link" data-act="tip" data-k="${k}" style="align-self:flex-start;padding:0;font-weight:600">Got it</button></span></div>`;}
@@ -956,8 +957,8 @@ function drawFirst(step){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:28px">
       <span style="transform:scale(2.2);margin:34px 0 38px">${appIcon}</span>
       <h1 style="font-size:34px">Welcome to Safe</h1>
-      <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and FI progress in one calm place.</p></div>
-      <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On a day you choose, log what you saved and split it.")}${featRow(IC.goals,"Know if you’re on track","See when you reach financial independence, in a best, middle and worst case.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
+      <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and progress in one calm place.</p></div>
+      <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On a day you choose, log what you saved and split it.")}${featRow(IC.goals,"Know if you’re on track","See when you reach your financial goal, in a best, middle and worst case.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
       `<button class="btn" data-act="tour" data-i="0">Get started</button>`,"");
   }else if(step==="install"){
     const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
@@ -1156,6 +1157,7 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "due": S.tab="home";render();openDue();break;
     case "later": close();toast("Safe will remind you again tomorrow");break;
     case "flrestore": pickBackup(true);break;
+    case "currency": S.currency=t.dataset.v;persist();render(true);toast(`Currency · ${CUR()}`);break;
     case "tour": drawTour(+t.dataset.i);break;
     case "tourreplay": tourReplay=true;drawTour(0);break;
     case "tourdone": tourReplay=false;FL=false;openGuide();break;

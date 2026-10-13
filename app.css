@@ -210,3 +210,6 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 .pv-track{display:block;height:5px;border-radius:3px;background:var(--track);overflow:hidden;margin-top:4px}
 .pv-track i{display:block;height:100%;border-radius:3px}
 .dayselect{appearance:none;-webkit-appearance:none;border:0;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);font:inherit;font-weight:600;font-size:17px;padding:6px 30px 6px 12px;border-radius:12px;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 16px) 55%,calc(100% - 11px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+.seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--track);gap:2px}
+.seg button{border:0;background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:600;padding:6px 14px;border-radius:9px;min-height:32px}
+.seg button[aria-checked="true"]{background:var(--fieldb);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
