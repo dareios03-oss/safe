@@ -7,7 +7,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.2.3";
+const VERSION="1.2.4";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -150,7 +150,7 @@ function onTrack(){
   const inv0=b.value,oth0=b.fi-b.value;
   const paid0=b.fi-b.gain;
   const chartK=by?Math.max(ym(by+Math.max(S.chartAge||62,S.fiAge),7),targetK):targetK,nn=Math.max(chartK-nowK,n);
-  const run=pct=>{const r=pct/100/12,pts=[{i:0,v:inv0+oth0,p:paid0}];let inv=inv0,oth=oth0,pd=paid0,end=inv+oth,paidEnd=pd;for(let k=1;k<=nn;k++){inv=inv*(1+r)+mStocks;oth+=mOther;pd+=mStocks+mOther;if(k===n){end=inv+oth;paidEnd=pd;}if(k%3===0||k===n||k===nn)pts.push({i:k,v:inv+oth,p:pd});}return {end,paidEnd,last:inv+oth,pts};};
+  const run=pct=>{const r=pct/100/12,pts=[{i:0,v:inv0+oth0,p:paid0}];let inv=inv0,oth=oth0,pd=paid0,end=inv+oth,paidEnd=pd,cross=inv+oth>=S.fi?0:null;for(let k=1;k<=nn;k++){inv=inv*(1+r)+mStocks;oth+=mOther;pd+=mStocks+mOther;if(cross==null&&inv+oth>=S.fi)cross=k;if(k===n){end=inv+oth;paidEnd=pd;}if(k%3===0||k===n||k===nn)pts.push({i:k,v:inv+oth,p:pd});}return {end,paidEnd,last:inv+oth,pts,cross};};
   const cases={best:run(ot.best),mid:run(ot.mid),worst:run(ot.worst)};
   const r=ot.mid/100/12,g=Math.pow(1+r,n);
   const needStocks=n>0?(S.fi-inv0*g-oth0-mOther*n)*(r?r/(g-1):1/n):0;
@@ -174,14 +174,14 @@ function onTrackChart(o){
   const areas=`<polygon points="${x0.toFixed(1)},${yb} ${ps(paidPts)} ${x1.toFixed(1)},${yb}" fill="var(--soft)" opacity=".22"/><polygon points="${ps(topPts)} ${ps(paidPts.slice().reverse())}" fill="var(--accent)" opacity=".28"/><polyline points="${ps(paidPts)}" fill="none" stroke="var(--soft)" stroke-width="1.2"/>`;
   const hist=o.hist.filter(h=>h.k>=histFrom);
   const histLine=hist.length?`<polyline points="${hist.map(h=>`${X(h.k).toFixed(1)},${Y(h.v).toFixed(1)}`).join(" ")} ${X(o.nowK).toFixed(1)},${Y(o.cases.mid.pts[0].v).toFixed(1)}" fill="none" stroke="var(--ink)" stroke-width="2.4" stroke-linejoin="round"/>`:"";
-  const ticks=[0,.25,.5,.75,1].map(f=>f*vmax).filter((v,i)=>i>0);
+  const step=(()=>{const raw=vmax/6,p=Math.pow(10,Math.floor(Math.log10(raw)));return [1,2,2.5,5,10].map(m=>m*p).find(s=>s>=raw);})();const ticks=[];for(let v=step;v<=vmax*1.001;v+=step)ticks.push(v);
   const yr=k=>Math.floor(k/12),age=k=>o.by?yr(k)-o.by:null;
   const lab=(k,t,anchor)=>`<text x="${X(k).toFixed(1)}" y="${H-8}" text-anchor="${anchor}" font-size="10" fill="var(--muted)">${t}</text>`;
   const endY=c=>Y(c.last);
   const ends=[["best",o.cases.best,"var(--goodline)"],["mid",o.cases.mid,"var(--accent)"],["worst",o.cases.worst,"var(--prop)"]];
   let ly=ends.map(e=>endY(e[1]));for(let i=1;i<3;i++)if(ly[i]-ly[i-1]<13)ly[i]=ly[i-1]+13;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Projection of your FI money" style="display:block;overflow:visible">
-    ${ticks.map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/>${Math.abs(Y(v)-Y(S.fi))>12?`<text x="${pl+2}" y="${(Y(v)-4).toFixed(1)}" font-size="9.5" fill="var(--muted)">${kfmt(v)}</text>`:""}`).join("")}
+    ${ticks.map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/>${Math.abs(Y(v)-Y(S.fi))>14?`<text x="${pl+2}" y="${(Y(v)-4).toFixed(1)}" font-size="9.5" fill="var(--muted)">${kfmt(v)}</text>`:""}`).join("")}
     <line x1="${pl}" x2="${W-pr}" y1="${H-pb}" y2="${H-pb}" stroke="var(--line)"/>
     ${areas}
     <line x1="${pl}" x2="${W-pr}" y1="${Y(S.fi).toFixed(1)}" y2="${Y(S.fi).toFixed(1)}" stroke="var(--soft)" stroke-width="1.2" stroke-dasharray="3 4"/>
@@ -191,7 +191,10 @@ function onTrackChart(o){
     ${histLine}
     <circle cx="${X(o.nowK).toFixed(1)}" cy="${Y(o.cases.mid.pts[0].v).toFixed(1)}" r="4" fill="var(--ink)"/>
     ${ends.map((e,i)=>`<text x="${W-pr+4}" y="${(ly[i]+3).toFixed(1)}" font-size="10" font-weight="700" fill="${e[2]}">${kfmt(e[1].last)}</text>`).join("")}
-    ${o.by&&o.chartK>o.targetK?ends.map(e=>`<circle cx="${X(o.targetK).toFixed(1)}" cy="${Y(e[1].end).toFixed(1)}" r="3" fill="${e[2]}"/>`).join(""):""}
+    ${o.by&&o.chartK>o.targetK?(()=>{let ty=ends.map(e=>Y(e[1].end));for(let i=1;i<3;i++)if(ty[i]-ty[i-1]<12)ty[i]=ty[i-1]+12;
+      return ends.map((e,i)=>`<circle cx="${X(o.targetK).toFixed(1)}" cy="${Y(e[1].end).toFixed(1)}" r="3" fill="${e[2]}"/><text x="${(X(o.targetK)-6).toFixed(1)}" y="${(ty[i]+(i===0?-4:3)).toFixed(1)}" text-anchor="end" font-size="9.5" font-weight="700" fill="${e[2]}" paint-order="stroke" stroke="var(--bg)" stroke-width="3">${kfmt(e[1].end)}</text>`).join("");})():""}
+    ${o.by?(()=>{const cs=ends.filter(e=>e[1].cross!=null&&e[1].cross>0).map(e=>({x:X(o.nowK+e[1].cross),a:age(o.nowK+e[1].cross),c:e[2]}));let lx=cs.map(c=>c.x);for(let i=1;i<lx.length;i++)if(lx[i]-lx[i-1]<40)lx[i]=lx[i-1]+40;
+      return cs.map((c,i)=>`<line x1="${c.x.toFixed(1)}" x2="${c.x.toFixed(1)}" y1="${Y(S.fi).toFixed(1)}" y2="${H-pb}" stroke="${c.c}" stroke-width="1" stroke-dasharray="1 3" opacity=".8"/><circle cx="${c.x.toFixed(1)}" cy="${Y(S.fi).toFixed(1)}" r="3.5" fill="var(--bg)" stroke="${c.c}" stroke-width="2"/><text x="${lx[i].toFixed(1)}" y="${(Y(S.fi)-7).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${c.c}" paint-order="stroke" stroke="var(--bg)" stroke-width="3">age ${c.a}</text>`).join("");})():""}
     ${X(o.nowK)-X(k0)>70?lab(k0,String(yr(k0)),"start")+lab(o.nowK,"Now"+(o.by?" · "+age(o.nowK):""),"middle"):`<text x="${Math.max(pl,X(o.nowK)-14).toFixed(1)}" y="${H-8}" font-size="10" fill="var(--muted)">Now${o.by?" · age "+age(o.nowK):""}</text>`}${o.by&&o.chartK>o.targetK&&X(o.chartK)-X(o.targetK)>34?lab(o.targetK,"FI age "+S.fiAge,"middle")+lab(o.chartK,"Age "+age(o.chartK),"end"):lab(o.targetK,(o.by?"Age "+S.fiAge+" · ":"")+yr(o.targetK),"end")}
   </svg>`;
 }
@@ -213,7 +216,7 @@ function onTrackCard(){
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2.5px solid var(--accent)"></i><span class="muted">Middle ${fmtPct(o.ot.mid)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--prop)"></i><span class="muted">Worst ${fmtPct(o.ot.worst)}</span></span>
     </div>
-    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month for FI (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)===1?"check-in":Math.min(S.months.length,12)+" check-ins"}; updates with every check-in. Only invested money earns the return.</span>
+    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month for FI (${chf(o.mStocks)} into stocks) from your last ${Math.min(S.months.length,12)===1?"check-in":Math.min(S.months.length,12)+" check-ins"}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
   </section>`;
 }
 
