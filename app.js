@@ -2,13 +2,14 @@
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MS=MONTHS.map(m=>m.slice(0,3));
 const fmt=n=>{const r=Math.round(+n||0);return (r<0?"-":"")+String(Math.abs(r)).replace(/\B(?=(\d{3})+(?!\d))/g,"\u2019");};
-const CUR=()=>S.currency==="EUR"?"EUR":"CHF";
+const CURS=[["CHF","Swiss franc"],["EUR","Euro"],["USD","US dollar"]];
+const CUR=()=>CURS.some(c=>c[0]===S.currency)?S.currency:"CHF";
 const chf=n=>CUR()+" "+fmt(n);
 const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return isNaN(v)?0:v};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.3.2";
+const VERSION="1.3.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -440,7 +441,7 @@ function settings(){
   <div class="section">General</div>
   <div class="list glass"><div class="row" data-act="demo"><span id="demo-l" style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span>Demo mode</span><span class="muted" style="font-size:13px">Hides your numbers and shows a made-up person</span></span><button class="switch" role="switch" aria-checked="${!!S.demo}" aria-labelledby="demo-l" data-act="demo"></button></div></div>
   <p class="note">Use it to show Safe to someone. Your data stays untouched; anything changed in Demo mode is discarded when you switch it off.</p>
-  <div class="list glass"><div class="row" style="gap:12px"><span style="flex:1">Currency</span><span class="seg" role="radiogroup" aria-label="Currency">${["CHF","EUR"].map(c=>`<button role="radio" aria-checked="${CUR()===c}" data-act="currency" data-v="${c}">${c}</button>`).join("")}</span></div></div>
+  <div class="list glass"><button class="row" data-act="curmenu" aria-haspopup="menu" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink)"><span style="flex:1">Currency</span><span style="color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px">${CUR()}${IC.chev}</span></button></div>
   <div class="list glass">${rb("wipe","Delete all data","var(--bad)",1)}</div>
   <p class="note">Removes every month, goal and balance from this iPhone. Backup files you downloaded stay.</p>
   <div class="section">About</div>
@@ -561,7 +562,7 @@ function openInfo(k,a){
     <p class="explain">Safe always asks for the oldest missing month first, so your history has no gaps. Enter what you saved in ${MONTHS[dm.m-1]} and your portfolio value at the end of ${MONTHS[dm.m-1]}. A close estimate is fine. Right after saving, the next open month is offered.</p>`;
   }else if(k==="cur"){
     title="Currency";
-    body=`<p class="explain">Choose CHF or EUR in Settings. Only the label changes: your amounts are not converted.</p>`;
+    body=`<p class="explain">Choose CHF, EUR or USD in Settings. Only the label changes: your amounts are not converted.</p>`;
   }else if(k==="start"){
     title="Start tracking from";
     body=`<p class="explain">Pick the first month you want in your history. Safe asks for your balances just before that month, then for each year either month by month or as one yearly total. Yearly totals show as a monthly average in History.</p>`;
@@ -844,6 +845,10 @@ function deletePot(id){
 }
 
 /* ---------- other overlays ---------- */
+function openCurMenu(btn){
+  const r=btn.getBoundingClientRect(),h=3*46+12,top=r.bottom+6+h>innerHeight-90?r.top-h-6:r.bottom+6;
+  layer.innerHTML=`<div class="scrim" data-act="close" style="background:transparent"></div><div class="menu glass" role="menu" aria-label="Currency" style="top:${Math.round(top)}px;width:230px">${CURS.map(c=>`<button role="menuitemradio" aria-checked="${CUR()===c[0]}" data-act="currency" data-v="${c[0]}"><span>${c[0]} <span class="muted" style="font-size:13px;font-weight:400">${c[1]}</span></span><span class="muted" style="font-size:13px">${CUR()===c[0]?"✓":""}</span></button>`).join("")}</div>`;
+}
 function openMenu(){
   const opts=[["month","Month",`${MONTHS[cur().m-1].slice(0,3)} ${cur().y}`],["quarter","Quarter",""],["year","Year",String(cur().y)]];
   layer.innerHTML=`<div class="scrim" data-act="close" style="background:transparent"></div><div class="menu glass" role="menu" aria-label="Show history by">${opts.map(o=>`<button role="menuitemradio" aria-checked="${S.hmode===o[0]}" data-act="mode" data-mode="${o[0]}"><span>${o[1]}</span><span class="muted" style="font-size:13px">${S.hmode===o[0]?"✓":o[2]}</span></button>`).join("")}</div>`;
@@ -1157,7 +1162,8 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "due": S.tab="home";render();openDue();break;
     case "later": close();toast("Safe will remind you again tomorrow");break;
     case "flrestore": pickBackup(true);break;
-    case "currency": S.currency=t.dataset.v;persist();render(true);toast(`Currency · ${CUR()}`);break;
+    case "curmenu": openCurMenu(t);break;
+    case "currency": S.currency=t.dataset.v;close();persist();render(true);toast(`Currency · ${CUR()}`);break;
     case "tour": drawTour(+t.dataset.i);break;
     case "tourreplay": tourReplay=true;drawTour(0);break;
     case "tourdone": tourReplay=false;FL=false;openGuide();break;
