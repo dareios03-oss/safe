@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.3.4";
+const VERSION="1.3.5";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -76,13 +76,13 @@ function blendAvg(n){const xs=S.months.slice(-n),e=sinceEst(),miss=e?Math.max(n-
   const fi=xs.reduce((a,r)=>a+r.saved-r.holiday-potOutOf(r),0)+(e?e.fi*miss:0),st=xs.reduce((a,r)=>a+r.stocks,0)+(e?e.stocks*miss:0);
   return {fi:cnt?fi/cnt:0,stocks:cnt?st/cnt:0,real:xs.length,est:miss};}
 function avgSave(n){return blendAvg(n).fi;}
-function projYear(base){
+/* year the goal is reached: same engine as On track (only stocks grow, middle case) */
+function projYear(base,withAge){
   if(base>=S.fi)return "reached";
-  const c=avgSave(12),r=S.ret/100/12;let P=base,n=0;
-  while(P<S.fi&&n<1200){P=P*(1+r)+c;n++;}
-  if(n>=1200)return "–";
-  const lr=cur()||blank();return Math.floor((ym(lr.y,lr.m)+n)/12);
+  const o=onTrack();if(o.reachK==null)return "–";
+  const y=Math.floor(o.reachK/12);return withAge&&o.by?`${y} (age ${y-o.by})`:String(y);
 }
+const midRet=()=>Object.assign({best:8,mid:5,worst:2},S.ot||{}).mid;
 const lastIdx=(y,m)=>{let k=-1;S.months.forEach((r,i)=>{if(ym(r.y,r.m)<=ym(y,m))k=i;});return k;};
 
 /* ---------- icons ---------- */
@@ -407,8 +407,8 @@ function goals(){
     <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="big" style="font-size:40px">${pct.toFixed(1)}%</span><span class="muted" style="font-size:15px">${chf(fiBase)} · excl. holiday${b.potOut?" &amp; spending goals":""}</span></div>
     <span class="track" style="flex:none;height:10px"><span style="width:${Math.min(pct,100)}%;background:linear-gradient(90deg,#5C9BFF,#8E4FD8)"></span></span>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:18px;padding:12px 14px;background:var(--field);border:1px solid var(--fieldb)">
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Projected to reach goal</span><span style="font-size:22px;font-weight:700">≈ ${projYear(fiBase)}</span></span>
-      <span class="muted" style="font-size:12px;text-align:right;line-height:1.4">at avg ${chf(avg)}/month<br>and ${S.ret}% return per year</span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Projected to reach goal</span><span style="font-size:22px;font-weight:700">≈ ${projYear(fiBase,true)}</span></span>
+      <span class="muted" style="font-size:12px;text-align:right;line-height:1.4">at avg ${chf(avg)}/month<br>and ${fmtPct(midRet())} on stocks</span>
     </div>
   </section>
   ${onTrackCard()}
@@ -432,7 +432,7 @@ function settings(){
   const rb=(act,label,color,last)=>`<button class="row" data-act="${act}" style="border:0;${last?"":"border-bottom:1px solid var(--line);"}background:transparent;color:${color||"var(--accent)"};font-weight:600;text-align:left">${label}</button>`;
   return `<h1>Settings</h1>
   <div class="section">Goals &amp; calculations</div>
-  <div class="list glass">${fld("s-fi","Financial goal ("+CUR()+")",fmt(S.fi))}${fld("s-hol","Holiday budget ("+CUR()+")",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund ("+CUR()+")",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve ("+CUR()+")",fmt(S.reserve||0))}${fld("s-ret","Expected return / year",S.ret,"%")}</div>
+  <div class="list glass">${fld("s-fi","Financial goal ("+CUR()+")",fmt(S.fi))}${fld("s-hol","Holiday budget ("+CUR()+")",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund ("+CUR()+")",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve ("+CUR()+")",fmt(S.reserve||0))}</div>
   <p class="note">Holiday money is shown in totals but not counted toward the financial goal. Changes update Home and Goals right away.</p>
   <div class="section">Check-in</div>
   <div class="list glass">
@@ -510,12 +510,12 @@ function openInfo(k,a){
     ${kv([["Stocks (paid in)",chf(sp.stocks)],["Property savings",chf(sp.property)],["Holiday budget",chf(sp.holiday)],...S.pots.map(pt=>[esc(pt.name),chf(sp.pots[pt.id]||0)]),["Cash (rest)",chf(sp.cash)],["Market gain on stocks",sign(sp.gain),col(sp.gain)]])}
     <p class="explain">This adds up the split you entered in each check-in${q.idx.length>1?` for the ${q.idx.length} months in ${plabel(q.k,S.hmode,false)}`:""}. Market gain is the change in portfolio value minus what you paid in, so it's not part of what you saved.</p>`;
   }else if(k==="fi"){
-    const base=b.fi,c=avgSave(12),yr=projYear(base);
+    const base=b.fi,c=avgSave(12),yr=projYear(base,true);
     title="Financial goal";
     body=`<span class="big">${(base/S.fi*100).toFixed(1)}%</span>
-    ${kv([["Counted for financial goal",chf(base)],["Goal",chf(S.fi)],["Still to go",chf(Math.max(S.fi-base,0))],["Avg saved / month, excl. holiday",chf(c)],["Expected return",S.ret+"% per year"],["Projected to reach goal","≈ "+yr]])}
-    <p class="explain">The projection adds your average monthly saving and grows everything at the expected return, month by month, until it reaches your goal. It's a rough guide, not a forecast: markets and your savings will vary.</p>`;
-    action=`<button class="btn" data-act="tab" data-tab="settings">Change goal or return</button>`;
+    ${kv([["Counted for financial goal",chf(base)],["Goal",chf(S.fi)],["Still to go",chf(Math.max(S.fi-base,0))],["Avg saved / month, excl. holiday",chf(c)],["Return on stocks (middle case)",fmtPct(midRet())+" per year"],["Projected to reach goal","≈ "+yr]])}
+    <p class="explain">Same calculation as “On track”: your stocks grow at the middle-case return, cash and property savings are added without return, plus your average monthly saving, until you reach your goal. It's a rough guide, not a forecast: markets and your savings will vary.</p>`;
+    action=`<button class="btn" data-act="info" data-k="ontrack">Change goal or returns</button>`;
   }else if(k==="prop"){
     title="First property";
     const f=(id,label,val,suf,hint)=>`<label class="row" for="pp-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:""}</span><input class="val" id="pp-${id}" data-pp="${id}" inputmode="decimal" value="${val}" placeholder="${id==="income"?fmt(propCalc(b).incAuto):""}" style="width:96px">${suf?`<span class="muted" style="font-size:15px">${suf}</span>`:""}</label>`;
