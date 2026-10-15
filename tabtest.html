@@ -86,22 +86,28 @@ const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 /* springs: x (lens centre), w, h, m (magnification), s (bar scale), g (glow 0..1) */
 const sp={x:{v:0,t:0,k:.16,d:.74,c:0},w:{v:0,t:0,k:.2,d:.66,c:0},h:{v:0,t:0,k:.2,d:.62,c:0},m:{v:1,t:1,k:.2,d:.68,c:0},s:{v:1,t:1,k:.22,d:.62,c:0},g:{v:0,t:0,k:.18,d:.7,c:0}};
 let W=0,H=62,tw=0,pressed=false,dragging=false,raf=0;
+/* taps: fixed-time glide with a light settle, the same for near and far tabs */
+let tw8=null; const TDUR=420;
+const easeOut=t=>1-Math.pow(1-t,3); /* smooth glide, no overshoot that grows with distance */
 function geo(){W=tb.clientWidth;tw=(W-10)/TABS.length;}
 const centre=i=>5+tw*i+tw/2;
 const clampX=x=>Math.min(Math.max(x,5+tw/2),W-5-tw/2);
 function setTargets(){
   sp.w.t=pressed?tw*1.3:tw; sp.h.t=pressed?74:52; sp.m.t=pressed?1.2:1; sp.s.t=pressed?1.03:1; sp.g.t=pressed?1:0;
-  if(!dragging)sp.x.t=centre(active);
+  if(!dragging&&!tw8)sp.x.t=centre(active);
 }
 function step(){
   let moving=false;
-  for(const k in sp){const s=sp[k];if(reduce){s.v=s.t;s.c=0;continue;}s.c=(s.c+(s.t-s.v)*s.k)*s.d;s.v+=s.c;if(Math.abs(s.c)>.002||Math.abs(s.t-s.v)>.002)moving=true;}
+  if(tw8){const now=performance.now(),t=Math.min((now-tw8.t0)/TDUR,1),p=easeOut(t);
+    sp.x.v=tw8.a+(tw8.b-tw8.a)*p+Math.sign(tw8.b-tw8.a)*3*Math.sin(Math.PI*Math.max(0,(t-.55)/.45));sp.x.c=0;tw8.bump=Math.sin(Math.PI*Math.min(t*1.25,1));
+    if(t>=1){sp.x.v=sp.x.t=tw8.b;tw8=null;}else moving=true;}
+  for(const k in sp){if(k==="x"&&tw8)continue;const s=sp[k];if(reduce){s.v=s.t;s.c=0;continue;}s.c=(s.c+(s.t-s.v)*s.k)*s.d;s.v+=s.c;if(Math.abs(s.c)>.002||Math.abs(s.t-s.v)>.002)moving=true;}
   draw();
   raf=moving?requestAnimationFrame(step):0;
 }
 function kick(){if(!raf)raf=requestAnimationFrame(step);}
 function draw(){
-  const vx=sp.x.c,st=Math.min(Math.abs(vx)*1.6,34);
+  const vx=sp.x.c,st=tw8?10*tw8.bump:Math.min(Math.abs(vx)*1.6,24);
   const w=sp.w.v+st,h=Math.max(sp.h.v-st*.22,44),x=sp.x.v,lx=x-w/2,ly=H/2-h/2,r=h/2;
   lens.style.cssText=`left:${lx}px;top:${ly}px;width:${w}px;height:${h}px;border-radius:${r}px`;
   lens.classList.toggle("on",sp.g.v>.35);
@@ -112,7 +118,9 @@ function draw(){
   const rr=Math.min(r,w/2);
   base.style.clipPath=`path(evenodd,"M0 0H${W}V${H}H0Z M${lx+rr} ${ly}H${lx+w-rr}A${rr} ${rr} 0 0 1 ${lx+w-rr} ${ly+h}H${lx+rr}A${rr} ${rr} 0 0 1 ${lx+rr} ${ly}Z")`;
 }
-function select(i){active=i;ttl.textContent=TABS[i][1];dragging=false;setTargets();kick();}
+function select(i,glide){const from=sp.x.v;active=i;ttl.textContent=TABS[i][1];dragging=false;
+  if(glide&&!reduce&&Math.abs(centre(i)-from)>1){tw8={a:from,b:centre(i),t0:performance.now(),bump:0};sp.x.t=centre(i);}
+  setTargets();kick();}
 
 let down=null,relT=0;
 tb.addEventListener("pointerdown",e=>{geo();const r=tb.getBoundingClientRect(),x=(e.clientX-r.left)/sp.s.v;
@@ -122,12 +130,12 @@ tb.addEventListener("pointermove",e=>{if(!down)return;const r=tb.getBoundingClie
   if(!dragging&&Math.abs(e.clientX-down.x0)<5)return;dragging=true;sp.x.t=clampX(x);kick();});
 function release(e){if(!down)return;const r=tb.getBoundingClientRect(),x=(e.clientX-r.left)/sp.s.v;
   const i=dragging?Math.round((clampX(sp.x.t)-5-tw/2)/tw):Math.min(Math.max(Math.floor((x-5)/tw),0),TABS.length-1);
-  const held=e.timeStamp-down.t;down=null;
+  const held=e.timeStamp-down.t,wasDrag=dragging;down=null;
   /* keep the drop visible for a moment on a quick tap so the press reads */
   relT=setTimeout(()=>{pressed=false;setTargets();kick();},Math.max(0,150-held));
-  select(i);}
+  select(i,!wasDrag);}
 tb.addEventListener("pointerup",release);tb.addEventListener("pointercancel",release);
-btns.addEventListener("keydown",e=>{const b=e.target.closest("button");if(b&&(e.key==="Enter"||e.key===" ")){e.preventDefault();select(+b.dataset.i);}});
+btns.addEventListener("keydown",e=>{const b=e.target.closest("button");if(b&&(e.key==="Enter"||e.key===" ")){e.preventDefault();select(+b.dataset.i,true);}});
 addEventListener("resize",()=>{geo();for(const k of ["x","w","h"]){}sp.x.v=sp.x.t=centre(active);sp.w.v=sp.w.t=tw;draw();});
 geo();sp.x.v=sp.x.t=centre(0);sp.w.v=sp.w.t=tw;sp.h.v=sp.h.t=52;draw();
 })();
