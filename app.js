@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.4.2";
+const VERSION="1.4.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -951,16 +951,15 @@ const TOUR=[
 let tourReplay=false;
 function drawTour(i){
   FL=true;const st=TOUR[i],last=i===TOUR.length-1;
-  const dots=`<div style="display:flex;gap:6px;justify-content:center;margin-top:4px" aria-label="Step ${i+1} of ${TOUR.length}">${TOUR.map((_,k)=>`<span style="width:${k===i?18:7}px;height:7px;border-radius:4px;background:${k===i?"var(--accent)":"var(--track)"};transition:width .2s"></span>`).join("")}</div>`;
+  const dots=`<div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px" aria-label="Step ${i+1} of ${TOUR.length}">${TOUR.map((_,k)=>`<span style="width:${k===i?18:7}px;height:7px;border-radius:4px;background:${k===i?"var(--accent)":"var(--track)"};transition:width .2s"></span>`).join("")}</div>`;
   const doneAct=tourReplay?'data-act="tourdone"':`data-act="fl" data-s="${isStandalone()?"demo":"install"}"`;
   layer.innerHTML=shellFull(`<div class="tour" style="display:flex;flex-direction:column;gap:16px;padding-top:12px">
       <div class="eyebrow">${i+1} of ${TOUR.length}</div>
       ${PV[st.pv]()}
       <h1 style="font-size:30px;margin:6px 0 0">${st.t}</h1>
-      <p class="muted" style="margin:0;font-size:17px;line-height:1.45">${st.s}</p>
-      ${dots}</div>`,
-    last?`<button class="btn" ${doneAct}>${tourReplay?"Done":"Let’s go"}</button>`:`<button class="btn" data-act="tour" data-i="${i+1}">Next</button>`,
-    last?"":`<button class="link" ${doneAct}>Skip</button>`,
+      <p class="muted" style="margin:0;font-size:17px;line-height:1.45">${st.s}</p></div>`,
+    dots+(last?`<button class="btn" ${doneAct}>${tourReplay?"Done":"Let’s go"}</button>`:`<button class="btn" data-act="tour" data-i="${i+1}">Next</button>`),
+    last?`<button class="link" style="visibility:hidden" tabindex="-1" aria-hidden="true">Skip</button>`:`<button class="link" ${doneAct}>Skip</button>`,
     i>0?[`data-act="tour" data-i="${i-1}"`,"Back"]:(tourReplay?['data-act="tourdone"',"Guide"]:['data-act="fl" data-s="welcome"',"Back"]));
   const f=layer.querySelector(".full");let sx=null,sy=0;
   f.addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX>28?t.clientX:null;sy=t.clientY;},{passive:true});
