@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.3.5";
+const VERSION="1.4.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -605,43 +605,72 @@ function render(keepScroll){
   persist();
 }
 
-/* ---------- tab bar with a sliding lens (tap a tab, or slide your finger along the bar) ---------- */
+/* ---------- tab bar: liquid-glass lens (magnifier, water drop on touch, spring physics) ---------- */
+const ICF={ /* filled icons, shown inside the lens */
+ home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>',
+ checkin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+ history:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3.4" y="10" width="3.6" height="11" rx="1.8"/><rect x="10.2" y="3.5" width="3.6" height="17.5" rx="1.8"/><rect x="17" y="13" width="3.6" height="8" rx="1.8"/></svg>',
+ goals:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="5.6" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="#fff"/></svg>',
+ settings:'<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8L6.9 6.9M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1"/></svg>'
+};
+const TB={W:0,H:62,tw:0,pressed:false,dragging:false,raf:0,glide:null,nextGlide:true,down:null,relT:0,active:-1,
+  sp:{x:{v:0,t:0,k:.16,d:.74,c:0},w:{v:0,t:0,k:.2,d:.66,c:0},h:{v:52,t:52,k:.2,d:.62,c:0},m:{v:1,t:1,k:.2,d:.68,c:0},s:{v:1,t:1,k:.22,d:.62,c:0},g:{v:0,t:0,k:.18,d:.7,c:0}}};
+const tbReduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const tbEase=t=>1-Math.pow(1-t,3);
+const tbEl=id=>tabs.querySelector(id);
+function tbGeo(){TB.W=tabs.clientWidth;TB.tw=(TB.W-10)/TABS.length;}
+const tbCentre=i=>5+TB.tw*i+TB.tw/2;
+const tbClamp=x=>Math.min(Math.max(x,5+TB.tw/2),TB.W-5-TB.tw/2);
+function tbTargets(){const sp=TB.sp,P=TB.pressed;
+  sp.w.t=P?TB.tw*1.3:TB.tw;sp.h.t=P?74:52;sp.m.t=P?1.2:1;sp.s.t=P?1.03:1;sp.g.t=P?1:0;
+  if(!TB.dragging&&!TB.glide)sp.x.t=tbCentre(TB.active);}
+function tbStep(){let moving=false;const sp=TB.sp,G=TB.glide;
+  if(G){const t=Math.min((performance.now()-G.t0)/420,1);
+    sp.x.v=G.a+(G.b-G.a)*tbEase(t)+Math.sign(G.b-G.a)*3*Math.sin(Math.PI*Math.max(0,(t-.55)/.45));sp.x.c=0;G.bump=Math.sin(Math.PI*Math.min(t*1.25,1));
+    if(t>=1){sp.x.v=sp.x.t=G.b;TB.glide=null;}else moving=true;}
+  for(const k in sp){if(k==="x"&&TB.glide)continue;const s=sp[k];if(tbReduce){s.v=s.t;s.c=0;continue;}
+    s.c=(s.c+(s.t-s.v)*s.k)*s.d;s.v+=s.c;if(Math.abs(s.c)>.002||Math.abs(s.t-s.v)>.002)moving=true;}
+  tbDraw();TB.raf=moving?requestAnimationFrame(tbStep):0;}
+function tbKick(){if(!TB.raf)TB.raf=requestAnimationFrame(tbStep);}
+function tbDraw(){const sp=TB.sp,W=TB.W,H=TB.H,lens=tbEl(".tb-lens");if(!lens||!W)return;
+  const st=TB.glide?10*TB.glide.bump:Math.min(Math.abs(sp.x.c)*1.6,24);
+  const w=sp.w.v+st,h=Math.max(sp.h.v-st*.22,44),x=sp.x.v,lx=x-w/2,ly=H/2-h/2,r=h/2,rr=Math.min(r,w/2);
+  lens.style.cssText=`left:${lx}px;top:${ly}px;width:${w}px;height:${h}px;border-radius:${r}px`;
+  lens.classList.toggle("on",sp.g.v>.35);
+  tbEl(".tb-mag").style.cssText=`left:${-lx}px;top:${-ly}px;width:${W}px;height:${H}px;transform-origin:${x}px ${H/2}px;transform:scale(${sp.m.v})`;
+  const rim=tbEl(".tb-rim");rim.style.opacity=(sp.g.v*.55).toFixed(3);rim.style.setProperty("--ang",(x/W*300).toFixed(1)+"deg");
+  tabs.style.transform=sp.s.v===1?"":`scale(${sp.s.v})`;
+  /* cut the lens out of the plain row, so outline icons never show through the glass */
+  tbEl(".tb-base").style.clipPath=`path(evenodd,"M0 0H${W}V${H}H0Z M${lx+rr} ${ly}H${lx+w-rr}A${rr} ${rr} 0 0 1 ${lx+w-rr} ${ly+h}H${lx+rr}A${rr} ${rr} 0 0 1 ${lx+rr} ${ly}Z")`;}
 function drawTabs(){
-  if(!tabs.querySelector(".lens")){
-    tabs.innerHTML=`<span class="lens" aria-hidden="true"></span>`+TABS.map(([k,l])=>`<button class="tab" data-act="tab" data-tab="${k}">${IC[k]}<span>${l}</span></button>`).join("");
+  if(!tbEl(".tb-lens")){
+    const row=set=>TABS.map(([k,l])=>`<div class="tb-tab">${set[k]}<span>${l}</span></div>`).join("");
+    tabs.innerHTML=`<div class="tb-row tb-base" aria-hidden="true">${row(IC)}</div><div class="tb-lens" aria-hidden="true"><div class="tb-mag">${row(ICF)}</div><span class="tb-rim"></span></div><div class="tb-btns">${TABS.map(([k,l])=>`<button class="tab" data-act="tab" data-tab="${k}" aria-label="${l}"></button>`).join("")}</div>`;
+    tbGeo();TB.active=Math.max(TABS.findIndex(t=>t[0]===S.tab),0);TB.sp.x.v=TB.sp.x.t=tbCentre(TB.active);TB.sp.w.v=TB.sp.w.t=TB.tw;
   }
   tabs.querySelectorAll(".tab").forEach(b=>{if(b.dataset.tab===S.tab)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
-  placeLens();
+  if(!TB.W)tbGeo();
+  const i=Math.max(TABS.findIndex(t=>t[0]===S.tab),0);
+  if(i!==TB.active){const from=TB.sp.x.v;TB.active=i;
+    if(TB.nextGlide&&!tbReduce&&Math.abs(tbCentre(i)-from)>1){TB.glide={a:from,b:tbCentre(i),t0:performance.now(),bump:0};TB.sp.x.t=tbCentre(i);}}
+  TB.nextGlide=true;TB.dragging=false;tbTargets();tbKick();tbDraw();
 }
-function placeLens(x){
-  const lens=tabs.querySelector(".lens"),cur=tabs.querySelector(`.tab[data-tab="${S.tab}"]`);if(!lens||!cur)return;
-  const w=cur.offsetWidth;lens.style.width=w+"px";
-  const left=x==null?cur.offsetLeft:Math.min(Math.max(x-w/2,5),tabs.clientWidth-w-5);
-  lens.style.transform=`translateX(${left}px)`;
-}
-let tdrag=null,tabClickBlock=0;
-const tabAt=x=>{let best=null,bd=1e9;tabs.querySelectorAll(".tab").forEach(b=>{const c=b.offsetLeft+b.offsetWidth/2,d=Math.abs(c-x);if(d<bd){bd=d;best=b;}});return best;};
-function magnify(x){tabs.querySelectorAll(".tab").forEach(b=>{const c=b.offsetLeft+b.offsetWidth/2,w=b.offsetWidth,k=x==null?0:Math.max(0,1-Math.abs(c-x)/w);
-  const sc=1+.22*k;b.querySelector("svg").style.transform=k?`scale(${sc}) translateY(${-2*k}px)`:"";b.querySelector("span").style.transform=k?`scale(${1+.08*k})`:"";b.classList.toggle("hover",k>.5);});}
-tabs.addEventListener("pointerdown",e=>{const r=tabs.getBoundingClientRect(),x=e.clientX-r.left;
-  tdrag={x0:e.clientX,lx:e.clientX,lt:e.timeStamp,moved:false,r,id:e.pointerId};
-  try{tabs.setPointerCapture(e.pointerId);}catch(_){}
-  tabs.classList.add("press");magnify(x);});
-tabs.addEventListener("pointermove",e=>{if(!tdrag)return;const x=e.clientX-tdrag.r.left;
-  if(!tdrag.moved&&Math.abs(e.clientX-tdrag.x0)<4)return;
-  tdrag.moved=true;tabs.classList.add("drag");placeLens(x);
-  const dt=Math.max(e.timeStamp-tdrag.lt,1),v=(e.clientX-tdrag.lx)/dt;tdrag.lx=e.clientX;tdrag.lt=e.timeStamp;
-  const st=Math.min(Math.abs(v)*.35,.32),lens=tabs.querySelector(".lens");lens.style.scale=`${1.14+st} ${1.18-st*.4}`;
-  magnify(x);});
-function endTabDrag(e,cancel){if(!tdrag)return;const d=tdrag;tdrag=null;
-  const lens=tabs.querySelector(".lens");lens.style.scale="";tabs.classList.remove("drag","press");magnify(null);
-  tabClickBlock=Date.now();
-  if(cancel){placeLens();return;}
-  const t=tabAt(e.clientX-d.r.left);if(t&&t.dataset.tab!==S.tab){close();S.tab=t.dataset.tab;render();}else placeLens();}
-tabs.addEventListener("pointerup",e=>endTabDrag(e,false));
-tabs.addEventListener("pointercancel",e=>endTabDrag(e,true));
+let tabClickBlock=0;
+const tbX=e=>{const r=tabs.getBoundingClientRect();return (e.clientX-r.left)/TB.sp.s.v;};
+tabs.addEventListener("pointerdown",e=>{tbGeo();TB.down={x0:e.clientX,t:e.timeStamp};try{tabs.setPointerCapture(e.pointerId);}catch(_){}
+  clearTimeout(TB.relT);TB.pressed=true;tbTargets();tbKick();});
+tabs.addEventListener("pointermove",e=>{if(!TB.down)return;if(!TB.dragging&&Math.abs(e.clientX-TB.down.x0)<5)return;
+  TB.dragging=true;TB.glide=null;TB.sp.x.t=tbClamp(tbX(e));tbKick();});
+function tbRelease(e,cancel){if(!TB.down)return;const held=e.timeStamp-TB.down.t,wasDrag=TB.dragging;TB.down=null;tabClickBlock=Date.now();
+  TB.relT=setTimeout(()=>{TB.pressed=false;tbTargets();tbKick();},Math.max(0,150-held));
+  if(cancel){TB.dragging=false;tbTargets();tbKick();return;}
+  const i=wasDrag?Math.round((tbClamp(TB.sp.x.t)-5-TB.tw/2)/TB.tw):Math.min(Math.max(Math.floor((tbX(e)-5)/TB.tw),0),TABS.length-1);
+  TB.nextGlide=!wasDrag;
+  if(TABS[i][0]!==S.tab){close();S.tab=TABS[i][0];render();}else{TB.dragging=false;tbTargets();tbKick();}}
+tabs.addEventListener("pointerup",e=>tbRelease(e,false));
+tabs.addEventListener("pointercancel",e=>tbRelease(e,true));
 tabs.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
-window.addEventListener("resize",()=>placeLens());
+window.addEventListener("resize",()=>{tbGeo();TB.glide=null;TB.sp.x.v=TB.sp.x.t=tbCentre(TB.active);TB.sp.w.v=TB.sp.w.t=TB.tw;tbDraw();});
 
 
 /* ---------- toast ---------- */
