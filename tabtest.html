@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Safe · Tab bar test</title>
+<meta name="theme-color" content="#E8ECF7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#05060F" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="app.css">
+<style>
+  html,body{margin:0;background:var(--bg)}
+  .page{position:relative;z-index:1;padding:calc(env(safe-area-inset-top,0px) + 24px) 18px 140px;display:flex;flex-direction:column;gap:14px;max-width:520px;margin:0 auto}
+  .page h1{margin:0}
+  .demo-card{display:flex;flex-direction:column;gap:8px;padding:18px;border-radius:26px}
+  .wallfix{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+
+  /* ---- new tab bar ---- */
+  :root{--lensRest:rgba(255,255,255,.78);--lensPress:rgba(255,255,255,.22);--lensRim:rgba(255,255,255,.95)}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--lensRest:rgba(255,255,255,.17);--lensPress:rgba(255,255,255,.1);--lensRim:rgba(255,255,255,.45)}}
+  .tb{position:fixed;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px)*.55 + 6px);height:62px;border-radius:31px;z-index:5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transform-origin:50% 50%;max-width:520px;margin:0 auto}
+  .tb-row{position:absolute;inset:0;display:flex;align-items:center;padding:0 5px;pointer-events:none}
+  .tb-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:52px;font-size:10px;font-weight:600;color:var(--muted);font-family:inherit}
+  .tb-tab svg{width:24px;height:24px;display:block}
+  .tb-mag .tb-tab{color:var(--accent)}
+  .tb-lens{position:absolute;left:0;top:5px;width:60px;height:52px;border-radius:26px;overflow:hidden;pointer-events:none;
+    background:var(--lensRest);box-shadow:inset 0 1px 0 var(--ghi),0 4px 14px var(--gsh)}
+  .tb-lens.on{background:linear-gradient(180deg,rgba(255,255,255,.22),var(--lensPress) 45%,rgba(255,255,255,.18));
+    box-shadow:inset 0 0 0 1px var(--lensRim),inset 0 3px 10px rgba(255,255,255,.55),inset 0 -6px 14px rgba(120,140,255,.16),0 12px 30px var(--gsh)}
+  .tb-mag{position:absolute;display:flex;align-items:center;padding:0 5px;box-sizing:border-box}
+  .tb-rim{position:absolute;inset:0;border-radius:inherit;padding:1.6px;opacity:0;
+    background:conic-gradient(from var(--ang,0deg),#ff8ad8,#8fd3ff,#fff3a0,#a6ffcb,#c9a4ff,#ff8ad8);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;filter:blur(.4px)}
+  .tb-btns{position:absolute;inset:0;display:flex;padding:0 5px}
+  .tb-btns button{flex:1;border:0;background:transparent;padding:0;margin:0;-webkit-tap-highlight-color:transparent}
+  .note2{font-size:13px;color:var(--muted);line-height:1.4}
+</style>
+</head>
+<body>
+<div class="wallfix" aria-hidden="true">
+  <div class="orb" style="position:absolute;left:-90px;top:-70px;width:330px;height:330px;border-radius:50%;filter:blur(60px);background:var(--o1)"></div>
+  <div class="orb" style="position:absolute;left:210px;top:170px;width:280px;height:280px;border-radius:50%;filter:blur(60px);background:var(--o2)"></div>
+  <div class="orb" style="position:absolute;left:-70px;top:460px;width:300px;height:300px;border-radius:50%;filter:blur(60px);background:var(--o3)"></div>
+  <div class="orb" style="position:absolute;left:220px;top:620px;width:260px;height:260px;border-radius:50%;filter:blur(60px);background:var(--o4)"></div>
+</div>
+<main class="page">
+  <div class="eyebrow">Test page · tab bar animation</div>
+  <h1 id="ttl">Home</h1>
+  <p class="note2" style="padding:0">Tap a tab, or hold the bar and slide your finger left and right. Only the bar is new here; the cards are just something to look at behind the glass.</p>
+  <section class="card glass demo-card"><span class="muted">Net worth</span><b style="font-size:34px;letter-spacing:-.02em">CHF 70’503</b><span class="pill good" style="align-self:flex-start">▲ CHF 2’905 this month</span></section>
+  <section class="card glass demo-card"><b>Financial goal</b><span class="muted">6.4% of 1M · ≈ 2050</span></section>
+  <section class="card glass demo-card"><b>On track by age 50?</b><span class="muted">At 5% you'd have CHF 696’759 at 50.</span></section>
+  <section class="card glass demo-card"><b>First property</b><span class="muted">Can buy up to CHF 50’025</span></section>
+  <section class="card glass demo-card"><b>Savings rate</b><span class="muted">30% · avg 29%</span></section>
+</main>
+
+<nav class="tb glass" id="tb" aria-label="Main">
+  <div class="tb-row" id="tbBase" aria-hidden="true"></div>
+  <div class="tb-lens" id="tbLens" aria-hidden="true"><div class="tb-mag" id="tbMag"></div><span class="tb-rim" id="tbRim"></span></div>
+  <div class="tb-btns" id="tbBtns"></div>
+</nav>
+
+<script>
+(function(){
+const TABS=[["home","Home"],["checkin","Check-in"],["history","History"],["goals","Goals"],["settings","Settings"]];
+const O={ /* outline icons (inactive) */
+ home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+ checkin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+ history:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>',
+ goals:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+ settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'
+};
+const F={ /* filled icons (inside the lens) */
+ home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>',
+ checkin:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7.5v9M7.5 12h9" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+ history:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3.4" y="10" width="3.6" height="11" rx="1.8"/><rect x="10.2" y="3.5" width="3.6" height="17.5" rx="1.8"/><rect x="17" y="13" width="3.6" height="8" rx="1.8"/></svg>',
+ goals:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="5.6" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="#fff"/></svg>',
+ settings:'<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3M4.8 4.8L6.9 6.9M17.1 17.1l2.1 2.1M4.8 19.2l2.1-2.1M17.1 6.9l2.1-2.1"/></svg>'
+};
+const tb=document.getElementById("tb"),base=document.getElementById("tbBase"),lens=document.getElementById("tbLens"),mag=document.getElementById("tbMag"),rim=document.getElementById("tbRim"),btns=document.getElementById("tbBtns"),ttl=document.getElementById("ttl");
+const row=set=>TABS.map(([k,l])=>`<div class="tb-tab">${set[k]}<span>${l}</span></div>`).join("");
+base.innerHTML=row(O);mag.innerHTML=row(F);
+btns.innerHTML=TABS.map(([k,l],i)=>`<button type="button" data-i="${i}" aria-label="${l}"></button>`).join("");
+let active=0;
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* springs: x (lens centre), w, h, m (magnification), s (bar scale), g (glow 0..1) */
+const sp={x:{v:0,t:0,k:.16,d:.74,c:0},w:{v:0,t:0,k:.2,d:.66,c:0},h:{v:0,t:0,k:.2,d:.62,c:0},m:{v:1,t:1,k:.2,d:.68,c:0},s:{v:1,t:1,k:.22,d:.62,c:0},g:{v:0,t:0,k:.18,d:.7,c:0}};
+let W=0,H=62,tw=0,pressed=false,dragging=false,raf=0;
+function geo(){W=tb.clientWidth;tw=(W-10)/TABS.length;}
+const centre=i=>5+tw*i+tw/2;
+const clampX=x=>Math.min(Math.max(x,5+tw/2),W-5-tw/2);
+function setTargets(){
+  sp.w.t=pressed?tw*1.3:tw; sp.h.t=pressed?74:52; sp.m.t=pressed?1.2:1; sp.s.t=pressed?1.03:1; sp.g.t=pressed?1:0;
+  if(!dragging)sp.x.t=centre(active);
+}
+function step(){
+  let moving=false;
+  for(const k in sp){const s=sp[k];if(reduce){s.v=s.t;s.c=0;continue;}s.c=(s.c+(s.t-s.v)*s.k)*s.d;s.v+=s.c;if(Math.abs(s.c)>.002||Math.abs(s.t-s.v)>.002)moving=true;}
+  draw();
+  raf=moving?requestAnimationFrame(step):0;
+}
+function kick(){if(!raf)raf=requestAnimationFrame(step);}
+function draw(){
+  const vx=sp.x.c,st=Math.min(Math.abs(vx)*1.6,34);
+  const w=sp.w.v+st,h=Math.max(sp.h.v-st*.22,44),x=sp.x.v,lx=x-w/2,ly=H/2-h/2,r=h/2;
+  lens.style.cssText=`left:${lx}px;top:${ly}px;width:${w}px;height:${h}px;border-radius:${r}px`;
+  lens.classList.toggle("on",sp.g.v>.35);
+  mag.style.cssText=`left:${-lx}px;top:${-ly}px;width:${W}px;height:${H}px;transform-origin:${x}px ${H/2}px;transform:scale(${sp.m.v})`;
+  rim.style.opacity=(sp.g.v*.55).toFixed(3);rim.style.setProperty("--ang",(x/W*300).toFixed(1)+"deg");
+  tb.style.transform=`scale(${sp.s.v})`;
+  /* cut the lens shape out of the base row so plain icons never show through the glass */
+  const rr=Math.min(r,w/2);
+  base.style.clipPath=`path(evenodd,"M0 0H${W}V${H}H0Z M${lx+rr} ${ly}H${lx+w-rr}A${rr} ${rr} 0 0 1 ${lx+w-rr} ${ly+h}H${lx+rr}A${rr} ${rr} 0 0 1 ${lx+rr} ${ly}Z")`;
+}
+function select(i){active=i;ttl.textContent=TABS[i][1];dragging=false;setTargets();kick();}
+
+let down=null,relT=0;
+tb.addEventListener("pointerdown",e=>{geo();const r=tb.getBoundingClientRect(),x=(e.clientX-r.left)/sp.s.v;
+  down={x0:e.clientX,x,t:e.timeStamp,id:e.pointerId};try{tb.setPointerCapture(e.pointerId);}catch(_){}
+  clearTimeout(relT);pressed=true;setTargets();kick();});
+tb.addEventListener("pointermove",e=>{if(!down)return;const r=tb.getBoundingClientRect(),x=(e.clientX-r.left)/sp.s.v;
+  if(!dragging&&Math.abs(e.clientX-down.x0)<5)return;dragging=true;sp.x.t=clampX(x);kick();});
+function release(e){if(!down)return;const r=tb.getBoundingClientRect(),x=(e.clientX-r.left)/sp.s.v;
+  const i=dragging?Math.round((clampX(sp.x.t)-5-tw/2)/tw):Math.min(Math.max(Math.floor((x-5)/tw),0),TABS.length-1);
+  const held=e.timeStamp-down.t;down=null;
+  /* keep the drop visible for a moment on a quick tap so the press reads */
+  relT=setTimeout(()=>{pressed=false;setTargets();kick();},Math.max(0,150-held));
+  select(i);}
+tb.addEventListener("pointerup",release);tb.addEventListener("pointercancel",release);
+btns.addEventListener("keydown",e=>{const b=e.target.closest("button");if(b&&(e.key==="Enter"||e.key===" ")){e.preventDefault();select(+b.dataset.i);}});
+addEventListener("resize",()=>{geo();for(const k of ["x","w","h"]){}sp.x.v=sp.x.t=centre(active);sp.w.v=sp.w.t=tw;draw();});
+geo();sp.x.v=sp.x.t=centre(0);sp.w.v=sp.w.t=tw;sp.h.v=sp.h.t=52;draw();
+})();
+</script>
+</body>
+</html>
