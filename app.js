@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.4.3";
+const VERSION="1.5.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -262,20 +262,38 @@ function home(){
       ${c.nofi?`<span class="pill" style="color:var(--muted);background:var(--field);border-color:var(--fieldb);align-self:center;font-size:11px">not counted</span>`:""}
       <span class="num" style="font-size:17px">${fmt(c.show!=null?c.show:c.v)}</span></div>`).join("")}</div>
   </section>
-  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+  ${homeTrack(b)}
+  <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px">
     <button class="card glass" data-act="tab" data-tab="history" style="text-align:left;flex-direction:row;align-items:center;gap:10px;padding:16px">
       <svg width="58" height="58" viewBox="0 0 60 60" aria-hidden="true" style="flex:none"><circle cx="30" cy="30" r="25" fill="none" stroke="var(--track)" stroke-width="7"/><circle cx="30" cy="30" r="25" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${dash} ${circ}" transform="rotate(-90 30 30)"/><text x="30" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${Math.round(rate)}%</text></svg>
       <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:600">Savings rate</span><span class="muted" style="font-size:13px">avg ${Math.round(avg)}%</span></span>
     </button>
-    <button class="card glass" data-act="tab" data-tab="goals" style="text-align:left;gap:6px;padding:16px">
-      <span style="font-size:15px;font-weight:600">Financial goal</span><span style="font-size:26px;font-weight:700">${fiPct.toFixed(1)}%</span>
-      <span class="track" style="flex:none;height:7px"><span style="width:${Math.min(fiPct,100)}%"></span></span>
-      <span class="muted" style="font-size:13px">of ${S.fi>=1e6?(S.fi/1e6)+"M":fmt(S.fi)} · ≈ ${projYear(fiBase)}</span>
     </button>
   </div>
   ${propCard(b)}`;
 }
 
+/* Home: compact "On track" card (same engine as Goals) */
+function homeTrack(b){
+  if(!S.birthYear)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check" style="gap:6px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Add your birth year and goal age to see if you reach your financial goal in time.</span></section>`;
+  const o=onTrack(),end=o.cases.mid.end,goal=S.fi,good=o.status!=="behind",col=good?"var(--goodline)":"var(--accent)";
+  const total=Math.max(goal,end),now=Math.min(b.fi/total*100,100),at=Math.min(end/total*100,100),tick=goal/total*100;
+  const pct=v=>Math.round(v/goal*100)+"%";
+  const reachAge=o.reachK!=null?Math.floor(o.reachK/12)-o.by:null,early=reachAge!=null?S.fiAge-reachAge:0;
+  const st={on:["good","On track"],ahead:["good","Ahead"],behind:["warn","Behind"]}[o.status];
+  const foot=good?(early>=1?`You'd reach your goal <b>${early} year${early===1?"":"s"} early</b> at ${fmtPct(o.ot.mid)}.`:`Right on schedule at ${fmtPct(o.ot.mid)}.`)
+    :`<b>+${chf(o.extra)}/month</b> into stocks closes the gap${reachAge!=null?` · otherwise goal reached at <b>${reachAge}</b>`:""}`;
+  return `<section class="card glass" data-act="tab" data-tab="goals" role="button" tabindex="0" aria-label="On track details" style="gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:30px;font-weight:700;letter-spacing:-.02em">${chf(Math.round(end/1000)*1000)}</span><span class="muted" style="font-size:13px">at ${S.fiAge} · goal ${kfmt(goal)}</span></div>
+    <div style="position:relative;height:10px;border-radius:5px;background:var(--track)" aria-hidden="true">
+      <span style="position:absolute;left:0;top:0;bottom:0;width:${at}%;border-radius:5px;background:${col};opacity:.32"></span>
+      <span style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(now,1.5)}%;border-radius:5px;background:${col}"></span>
+      <span style="position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:var(--ink);left:calc(${tick}% - 1px)"></span></div>
+    <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px" class="muted"><span>Today ${pct(b.fi)}</span>${good?`<span>${reachAge!=null?"Goal reached at "+reachAge:""}</span>`:`<span>At ${S.fiAge}: ${pct(end)}</span><span>Goal</span>`}</div>
+    <div style="font-size:14px;line-height:1.4;border-top:1px solid var(--line);padding-top:10px">${foot}</div>
+  </section>`;
+}
 function checkin(){
   const r=cur(),d=dueMonth();
   if(!d&&!r){const k=S.createdYm!=null?S.createdYm:ym(S.today.y,S.today.m),fy=Math.floor(k/12),fm=k%12+1;
