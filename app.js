@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.5.1";
+const VERSION="1.5.2";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -266,8 +266,8 @@ function home(){
   <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px">
     <button class="card glass" data-act="tab" data-tab="history" style="text-align:left;flex-direction:row;align-items:center;gap:10px;padding:16px">
       <svg width="58" height="58" viewBox="0 0 60 60" aria-hidden="true" style="flex:none"><circle cx="30" cy="30" r="25" fill="none" stroke="var(--track)" stroke-width="7"/><circle cx="30" cy="30" r="25" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${dash} ${circ}" transform="rotate(-90 30 30)"/><text x="30" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${Math.round(rate)}%</text></svg>
-      <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:600">Savings rate</span><span class="muted" style="font-size:13px">avg ${Math.round(avg)}%</span></span>
-    </button>
+      <span style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:600">Savings rate</span><span class="muted" style="font-size:13px">avg ${Math.round(avg)}%</span></span>
+      ${l6.length?`<span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:none;padding-left:12px;border-left:1px solid var(--line)"><span class="muted" style="font-size:12px">Avg per month</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(l6.reduce((s,x)=>s+x.saved,0)/l6.length)}</span><span class="muted" style="font-size:12px">saved of ${fmt(l6.reduce((s,x)=>s+x.income,0)/l6.length)}</span></span>`:""}
     </button>
   </div>
   ${propCard(b)}`;
