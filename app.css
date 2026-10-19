@@ -249,8 +249,8 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 
 /* iOS-style compact title bar (appears on scroll) */
 .navbar{position:absolute;left:0;right:0;top:0;height:calc(var(--st) + 56px);z-index:5;pointer-events:none;opacity:0;transition:opacity .22s ease}
-.navbar::before{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--bg) 80%,transparent);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);
-  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 78%,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 78%,transparent 100%)}
+.navbar::before{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--bg) 86%,transparent);-webkit-backdrop-filter:blur(28px) saturate(160%);backdrop-filter:blur(28px) saturate(160%)}
+.navbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line);transform:scaleY(.5);transform-origin:bottom}
 .navbar.on{opacity:1}
 .nav-t{position:absolute;left:70px;right:70px;top:calc(var(--st) + 8px);height:44px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:translateY(6px);transition:transform .22s ease;padding:0}
 .navbar.on .nav-t{transform:none;pointer-events:auto}
