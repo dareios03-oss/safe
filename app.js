@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.5.3";
+const VERSION="1.6.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -608,6 +608,14 @@ function openInfo(k,a){
 
 /* ---------- render ---------- */
 const scr=document.getElementById("screen"),tabs=document.getElementById("tabs"),layer=document.getElementById("layer");
+/* iOS-style compact title bar: appears with the page name once the big title has scrolled under the top */
+function navSync(sc){if(!sc)return;const host=sc.classList.contains("fscroll")?sc.parentElement:document.getElementById("frame"),nb=host.querySelector(":scope > .navbar");if(!nb)return;
+  const h1=sc.querySelector("h1"),t=nb.querySelector(".nav-t"),nbB=nb.getBoundingClientRect().bottom;
+  const on=!!h1&&sc.scrollTop>4&&h1.getBoundingClientRect().bottom<nbB-6;
+  if(h1&&t.textContent!==h1.textContent.trim())t.textContent=h1.textContent.trim();
+  nb.classList.toggle("on",on);host.classList.toggle("navon",on);}
+let navRaf=0;
+function navLater(sc){if(navRaf)return;navRaf=requestAnimationFrame(()=>{navRaf=0;navSync(sc);});}
 const TABS=[["home","Home"],["checkin","Check-in"],["history","History"],["goals","Goals"],["settings","Settings"]];
 function render(keepScroll){
   const bar=document.getElementById("demotag"),showBar=S.demo||!S.setupDone;
@@ -620,6 +628,7 @@ function render(keepScroll){
   scr.innerHTML=html;
   drawTabs();
   scr.scrollTop=keepScroll?y:0;
+  navSync(scr);
   persist();
 }
 
@@ -921,6 +930,7 @@ function openDue(){
 /* full-screen shell (first launch + setup) */
 function shellFull(body,next,back,backBtn){
   return `<div class="full${backBtn?" hasback":""}"><div class="wall" aria-hidden="true">${document.querySelector(".wall").innerHTML}</div>${backBtn?`<button class="backbtn" ${backBtn[0]}><svg width="13" height="21" viewBox="0 0 13 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2L2.5 10.5 10.5 19"/></svg><span>${backBtn[1]}</span></button>`:""}
+  <div class="navbar"><button type="button" class="nav-t" data-act="totop" tabindex="-1"></button></div>
   <div class="screen fscroll">${body}</div>
   <div class="foot">${next}${back}</div></div>`;
 }
@@ -1228,6 +1238,7 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "flrestore": pickBackup(true);break;
     case "curmenu": openCurMenu(t);break;
     case "currency": S.currency=t.dataset.v;close();persist();render(true);toast(`Currency · ${CUR()}`);break;
+    case "totop": {const sc=t.closest(".full")?t.closest(".full").querySelector(".fscroll"):scr;sc.scrollTo({top:0,behavior:"smooth"});break;}
     case "tour": drawTour(+t.dataset.i);break;
     case "tourreplay": tourReplay=true;drawTour(0);break;
     case "tourdone": tourReplay=false;FL=false;openGuide();break;
@@ -1278,6 +1289,8 @@ document.getElementById("frame").addEventListener("focusout",e=>{
 // swipe in History
 let sx=0,sy=0;
 scr.addEventListener("touchstart",e=>{const p=e.touches[0];sx=p.clientX;sy=p.clientY;},{passive:true});
+scr.addEventListener("scroll",()=>navLater(scr),{passive:true});
+layer.addEventListener("scroll",e=>{if(e.target.classList&&e.target.classList.contains("fscroll"))navLater(e.target);},{passive:true,capture:true});
 scr.addEventListener("touchend",e=>{if(S.tab!=="history"||layer.innerHTML)return;const p=e.changedTouches[0],dx=p.clientX-sx,dy=p.clientY-sy;if(Math.abs(dx)>60&&Math.abs(dy)<50)step(dx<0?1:-1);},{passive:true});
 document.addEventListener("touchstart",()=>{},{passive:true});
 document.getElementById("frame").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches('[role="button"][data-act]')){e.preventDefault();e.target.click();}});
