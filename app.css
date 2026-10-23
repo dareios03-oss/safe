@@ -266,3 +266,7 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
   .full>.navbar{height:calc(var(--st) + 52px)}
   .full>.navbar .nav-t{top:calc(var(--st) + 4px)}
 }
+
+/* sheet header (title + close button) stays visible while the sheet scrolls */
+.sheet .inner>.shead{position:sticky;top:-8px;z-index:4;margin:-8px -16px 0;padding:10px 16px 10px;background:color-mix(in srgb,var(--sheet) 100%,transparent);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%)}
+.sheet .inner>.shead::after{content:"";position:absolute;left:0;right:0;top:100%;height:14px;pointer-events:none;background:linear-gradient(180deg,var(--sheet),color-mix(in srgb,var(--sheet) 0%,transparent))}

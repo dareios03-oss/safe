@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.6.4";
+const VERSION="1.6.5";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -599,7 +599,7 @@ function openInfo(k,a){
     body=`${kv([["Version",VERSION],["Months stored",String(S.months.length)],["Last backup",backupLabel()]])}<p class="explain">Safe keeps everything on this iPhone and works offline. Back up regularly: if the app is deleted, the data is gone unless you have a backup file.</p>`;
   }
   const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t"><span class="grab" aria-hidden="true"></span>
-  <div class="inner"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
+  <div class="inner"><div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
   if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
   bindSwipe([...layer.querySelectorAll(".sheet")].pop());
   if(k==="prop")wireProp();
