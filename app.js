@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.6.7";
+const VERSION="1.6.8";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -981,7 +981,7 @@ const TOUR=[
 let tourReplay=false;
 function drawTour(i){
   FL=true;const st=TOUR[i],last=i===TOUR.length-1;
-  const dots=`<div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px" aria-label="Step ${i+1} of ${TOUR.length}">${TOUR.map((_,k)=>`<span style="width:${k===i?18:7}px;height:7px;border-radius:4px;background:${k===i?"var(--accent)":"var(--track)"};transition:width .2s"></span>`).join("")}</div>`;
+  const dots=`<div style="display:flex;gap:6px;justify-content:center;margin-bottom:10px" aria-label="Step ${i+1} of ${TOUR.length}">${TOUR.map((_,k)=>`<span style="width:7px;height:7px;border-radius:50%;background:${k===i?"var(--ink)":"var(--track)"};transform:scale(${k===i?1.15:1});transition:background .2s,transform .2s"></span>`).join("")}</div>`;
   const doneAct=tourReplay?'data-act="tourdone"':`data-act="fl" data-s="${isStandalone()?"demo":"install"}"`;
   layer.innerHTML=shellFull(`<div class="tour" style="display:flex;flex-direction:column;gap:16px;padding-top:12px">
       <div class="eyebrow">${i+1} of ${TOUR.length}</div>
@@ -1025,7 +1025,7 @@ function tipCard(k){return `<div class="card glass tip" role="note" style="flex-
 function openFirst(){FL=true;drawFirst("welcome");}
 function drawFirst(step){
   FL=true;
-  const dots=n=>`<div style="display:flex;gap:6px;justify-content:center" aria-label="Step ${n} of 3">${[1,2,3].map(j=>`<span style="width:${j===n?18:7}px;height:7px;border-radius:4px;background:${j===n?"var(--accent)":"var(--track)"}"></span>`).join("")}</div>`;
+  const dots=n=>`<div style="display:flex;gap:6px;justify-content:center" aria-label="Step ${n} of 3">${[1,2,3].map(j=>`<span style="width:7px;height:7px;border-radius:50%;background:${j===n?"var(--ink)":"var(--track)"};transform:scale(${j===n?1.15:1})"></span>`).join("")}</div>`;
   if(step==="welcome"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:28px">
       <span style="transform:scale(2.2);margin:34px 0 38px">${appIcon}</span>
