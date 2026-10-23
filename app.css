@@ -270,3 +270,7 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 /* sheet header (title + close button) stays visible while the sheet scrolls */
 .sheet .inner>.shead{position:sticky;top:-8px;z-index:4;margin:-8px -16px 0;padding:10px 16px 10px;background:color-mix(in srgb,var(--sheet) 100%,transparent);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%)}
 .sheet .inner>.shead::after{content:"";position:absolute;left:0;right:0;top:100%;height:14px;pointer-events:none;background:linear-gradient(180deg,var(--sheet),color-mix(in srgb,var(--sheet) 0%,transparent))}
+
+/* back button: round glass circle with chevron (matches the close button and iOS 27) */
+.backbtn{left:16px;width:44px;height:44px;min-height:44px;padding:0;border-radius:22px;justify-content:center;color:var(--ink);gap:0}
+.backbtn svg{margin-left:-2px}

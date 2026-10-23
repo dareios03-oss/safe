@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.6.8";
+const VERSION="1.6.9";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -931,7 +931,7 @@ function openDue(){
 }
 /* full-screen shell (first launch + setup) */
 function shellFull(body,next,back,backBtn){
-  return `<div class="full${backBtn?" hasback":""}"><div class="wall" aria-hidden="true">${document.querySelector(".wall").innerHTML}</div>${backBtn?`<button class="backbtn" ${backBtn[0]}><svg width="13" height="21" viewBox="0 0 13 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 2L2.5 10.5 10.5 19"/></svg><span>${backBtn[1]}</span></button>`:""}
+  return `<div class="full${backBtn?" hasback":""}"><div class="wall" aria-hidden="true">${document.querySelector(".wall").innerHTML}</div>${backBtn?`<button class="backbtn glass" ${backBtn[0]} aria-label="Back to ${backBtn[1]}"><svg width="11" height="18" viewBox="0 0 13 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5L2.5 10.5 10 18.5"/></svg></button>`:""}
   <div class="navbar"><button type="button" class="nav-t" data-act="totop" tabindex="-1"></button></div>
   <div class="screen fscroll">${body}</div>
   <div class="foot">${next}${back}</div></div>`;
