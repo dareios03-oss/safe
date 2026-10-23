@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.6.2";
+const VERSION="1.6.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -255,7 +255,7 @@ function home(){
     <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:15px">Net worth</span>
     <span class="big">${chf(b.nw)}</span>
     <span class="pill ${delta>=0?"good":"warn"}" style="margin-top:4px">${delta>=0?"▲":"▼"} ${chf(Math.abs(delta))} this month</span></div>
-    <div class="split" aria-hidden="true">${cat.map(c=>`<span style="flex:${Math.max(c.v,0)};background:${c.c}"></span>`).join("")}</div>
+    <div class="split" aria-hidden="true">${cat.filter(c=>c.v>0).map(c=>`<span style="flex:${c.v};background:${c.c}"></span>`).join("")}</div>
     <div style="display:flex;flex-direction:column;gap:12px">${cat.map(c=>`
       <div class="catrow" data-act="info" data-k="${c.k}" data-a="${c.a}" role="button" tabindex="0" aria-label="${c.n} details"><span class="dot" style="background:${c.c};box-shadow:0 0 10px ${c.c}"></span>
       <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:17px">${c.n}</span>${c.sub?`<span class="muted" style="font-size:12px">${c.sub}</span>`:""}${c.subHtml||""}</span>
@@ -381,7 +381,7 @@ function history(){
   const parts=[["Stocks",sp.stocks,"var(--stocks)"],["Property savings",sp.property,"var(--prop)"],["Holiday budget",sp.holiday,"var(--hol)"]].concat(S.pots.map(pt=>[esc(pt.name),sp.pots[pt.id]||0,pt.color]),[["Cash",sp.cash,"var(--cash)"]]);
   const splitHtml=`<section class="card glass" data-act="info" data-k="split" role="button" tabindex="0" aria-label="Where the money went, details">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">Where the money went</span><span class="muted" style="font-size:13px">${p.idx.length>1?"sum of "+p.idx.length+" months":"this month"}</span></div>
-    <div class="split" aria-hidden="true">${parts.map(c=>`<span style="flex:${Math.max(c[1],0)};background:${c[2]}"></span>`).join("")}</div>
+    <div class="split" aria-hidden="true">${parts.filter(c=>c[1]>0).map(c=>`<span style="flex:${c[1]};background:${c[2]}"></span>`).join("")}</div>
     <div style="display:flex;flex-direction:column;gap:10px">${parts.map(c=>`<div style="display:flex;align-items:center;gap:12px"><span class="dot" style="background:${c[2]}"></span><span style="flex:1">${c[0]}</span><span class="muted" style="font-size:13px;width:40px;text-align:right">${sp.saved?Math.round(c[1]/sp.saved*100):0}%</span><span class="num" style="width:64px;text-align:right">${fmt(c[1])}</span></div>`).join("")}</div>
     <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:15px"><span class="muted">Market gain on stocks</span><span class="num" style="color:${sp.gain>=0?"var(--good)":"var(--bad)"}">${sp.gain>=0?"+":"−"}${fmt(Math.abs(sp.gain))}</span></div>
   </section>`;
