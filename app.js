@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.6.6";
+const VERSION="1.6.7";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -369,7 +369,9 @@ function history(){
   const bars=slice.map((q,j)=>{const qr=q.idx.map(i=>S.months[i]);const isEst=qr.some(r=>r.est);const partial=q.idx.length<(mode==="quarter"?3:mode==="year"?12:1)&&j===slice.length-1;
     return `<div class="bar${isEst?" est":""}${q.k===p.k?" sel":""}${partial&&q.k!==p.k?" live":""}" data-act="hjump" data-k="${q.k}" role="button" tabindex="0" aria-label="Show ${plabel(q.k,mode,false)}"><span style="height:${Math.max(vals[j]/max*H,22)}px">${fmt(vals[j])}</span></div>`;}).join("");
   const goalLine=goal?`<div class="goal" style="bottom:${goal/max*H}px" aria-hidden="true"></div>`:"";
-  const dots=ps.slice(Math.max(0,pi-3),pi+2).map(q=>`<button class="dotbtn" data-act="hjump" data-k="${q.k}" aria-label="Show ${plabel(q.k,mode,false)}"><span style="display:block;width:${q.k===p.k?16:6}px;height:6px;border-radius:3px;background:${q.k===p.k?"var(--bar)":"var(--track)"}"></span></button>`).join("");
+  /* one dot per period (window of max 9 when there are many), current period = filled dot */
+  const DW=9,d0=ps.length<=DW?0:Math.min(Math.max(pi-Math.floor(DW/2),0),ps.length-DW);
+  const dots=ps.slice(d0,d0+DW).map(q=>{const on=q.k===p.k;return `<button class="dotbtn" data-act="hjump" data-k="${q.k}" aria-label="Show ${plabel(q.k,mode,false)}" ${on?'aria-current="true"':""}><span style="display:block;width:7px;height:7px;border-radius:50%;background:${on?"var(--ink)":"var(--track)"};transform:scale(${on?1.15:1});transition:background .2s,transform .2s"></span></button>`;}).join("");
   const listTitle=mode==="month"?`${plabel(p.k,mode,false)} · tap to edit`:`Months in ${plabel(p.k,mode,false)} · tap to edit`;
   let listHtml=`<div class="section">${listTitle}</div>
     <div class="list glass">${p.idx.slice().reverse().map(i=>{const r=S.months[i];const ok=r.goal&&r.saved>=r.goal;const w=r.goal?Math.min(r.saved/r.goal*100,100):0;
