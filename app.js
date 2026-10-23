@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.6.3";
+const VERSION="1.6.4";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -379,8 +379,8 @@ function history(){
     <button data-act="setup" style="border:0;background:transparent;text-align:left;min-height:48px;padding:0 16px;font-size:17px;font-weight:600;color:var(--accent)">+ Add or edit historical data</button></div>`;
   const sp=splitOf(p.idx);
   const parts=[["Stocks",sp.stocks,"var(--stocks)"],["Property savings",sp.property,"var(--prop)"],["Holiday budget",sp.holiday,"var(--hol)"]].concat(S.pots.map(pt=>[esc(pt.name),sp.pots[pt.id]||0,pt.color]),[["Cash",sp.cash,"var(--cash)"]]);
-  const splitHtml=`<section class="card glass" data-act="info" data-k="split" role="button" tabindex="0" aria-label="Where the money went, details">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">Where the money went</span><span class="muted" style="font-size:13px">${p.idx.length>1?"sum of "+p.idx.length+" months":"this month"}</span></div>
+  const splitHtml=`<section class="card glass" ${mode==="month"?`data-act="edit" data-i="${p.idx[0]}" aria-label="Edit where the money went in ${plabel(p.k,mode,false)}"`:`data-act="info" data-k="split" aria-label="Where the money went, details"`} role="button" tabindex="0">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">Where the money went</span>${mode==="month"?'<span style="font-size:15px;font-weight:600;color:var(--accent)">Edit</span>':`<span class="muted" style="font-size:13px">sum of ${p.idx.length} months</span>`}</div>
     <div class="split" aria-hidden="true">${parts.filter(c=>c[1]>0).map(c=>`<span style="flex:${c[1]};background:${c[2]}"></span>`).join("")}</div>
     <div style="display:flex;flex-direction:column;gap:10px">${parts.map(c=>`<div style="display:flex;align-items:center;gap:12px"><span class="dot" style="background:${c[2]}"></span><span style="flex:1">${c[0]}</span><span class="muted" style="font-size:13px;width:40px;text-align:right">${sp.saved?Math.round(c[1]/sp.saved*100):0}%</span><span class="num" style="width:64px;text-align:right">${fmt(c[1])}</span></div>`).join("")}</div>
     <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:15px"><span class="muted">Market gain on stocks</span><span class="num" style="color:${sp.gain>=0?"var(--good)":"var(--bad)"}">${sp.gain>=0?"+":"−"}${fmt(Math.abs(sp.gain))}</span></div>
