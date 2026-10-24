@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.7.0";
+const VERSION="1.8.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
@@ -109,6 +109,8 @@ function propCalc(b){
   const byInc=inc&&rate>0?Math.floor(inc*pp.share/100/rate/1000)*1000:0,max=inc?Math.min(byEq,byInc):byEq,limit=!inc?"equity":byEq<=byInc?"equity":"income";
   return {e,pp,reserve,usable,byEq,byInc,inc,incAuto,manualInc:pp.income>0,rate,max,limit,need:max*e,cost:max*rate/12};
 }
+function propRow(b){const p=propCalc(b);
+  return `<button class="card glass" data-act="tab" data-tab="goals" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left" aria-label="First property, open Goals"><span style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span class="muted" style="font-size:13px">First property · can buy up to</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(p.max)}</span></span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`;}
 function propCard(b){
   const p=propCalc(b),top=Math.max(p.byEq,p.byInc,1);
   const bar=(label,v,on)=>`<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between;font-size:13px"><span class="muted">${label}</span><span class="num" style="${on?"color:var(--ink)":"color:var(--muted)"}">${p.inc||label.indexOf("income")<0?chf(v):"no income yet"}</span></div><span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${Math.min(v/top*100,100)}%;background:${on?"var(--prop)":"var(--soft)"};opacity:${on?1:.45}"></span></span></div>`;
@@ -213,12 +215,18 @@ function onTrackChart(o){
     ${X(o.nowK)-X(k0)>70?lab(k0,String(yr(k0)),"start")+lab(o.nowK,"Now"+(o.by?" · "+age(o.nowK):""),"middle"):`<text x="${Math.max(pl,X(o.nowK)-14).toFixed(1)}" y="${H-8}" font-size="10" fill="var(--muted)">Now${o.by?" · age "+age(o.nowK):""}</text>`}${o.by&&o.chartK>o.targetK&&X(o.chartK)-X(o.targetK)>34?lab(o.targetK,"Goal age "+S.fiAge,"middle")+lab(o.chartK,"Age "+age(o.chartK),"end"):lab(o.targetK,(o.by?"Age "+S.fiAge+" · ":"")+yr(o.targetK),"end")}
   </svg>`;
 }
+function goalHead(){const b=bal(L()),pct=b.fi/S.fi*100;
+  return `<div data-act="info" data-k="fi" role="button" tabindex="0" aria-label="Financial goal details" style="display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:13px">Financial goal · today</span><span class="muted" style="font-size:13px">Goal ${chf(S.fi)}</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:30px;font-weight:700;letter-spacing:-.02em">${pct.toFixed(1)}%</span><span class="muted" style="font-size:14px">${chf(b.fi)} · excl. holiday${b.potOut?" &amp; spending goals":""}</span></div>
+    <span class="track" style="flex:none;height:8px"><span style="width:${Math.min(pct,100)}%;background:linear-gradient(90deg,#5C9BFF,#8E4FD8)"></span></span>
+  </div>`;}
 function onTrackCard(){
   const o=onTrack();
-  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Enter your birth year and target age to see if you reach your financial goal in time, with best, middle and worst case.</span></section>`;
+  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check">${goalHead()}<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Enter your birth year and target age to see if you reach your financial goal in time, with best, middle and worst case.</span></section>`;
   const st={on:["good","On track"],ahead:["good","Ahead"],behind:["warn","Behind"]}[o.status];
   const m=o.cases.mid.end;
-  return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details">
+  return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details">${goalHead()}
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
     <span class="muted" style="font-size:14px;line-height:1.4">${o.status==="behind"?`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}. About <b style="color:var(--ink)">${chf(o.extra)} more per month</b> into stocks closes the gap.`:`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}${o.reachK!=null?`, reaching ${kfmt(S.fi)} around ${Math.floor(o.reachK/12)}${o.by?" (age "+(Math.floor(o.reachK/12)-o.by)+")":""}`:""}.`}</span>
     ${onTrackChart(o)}
@@ -249,7 +257,7 @@ function home(){
   return `
   <div class="head"><div><div class="eyebrow">${has?`Latest check-in · ${MONTHS[r.m-1]} ${r.y}`:"No check-ins yet"}</div><h1>Overview</h1></div>
   <button class="btn round" data-act="sheet" aria-label="New check-in">${IC.plus}</button></div><!--tip-->
-  ${isBehind()?`<button class="card glass" data-act="tab" data-tab="checkin" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Late</span><span style="flex:1;font-size:15px;font-weight:600">${MONTHS[d.m-1]} check-in is still open</span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`:""}
+  ${d&&(isBehind()||new Date(S.today.y,S.today.m-1,S.today.d)>=ciDate(d.y,d.m))?`<button class="card glass" data-act="sheet" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill ${isBehind()?"warn":"good"}" style="align-self:center">${isBehind()?"Late":"Due"}</span><span style="flex:1;font-size:15px;font-weight:600">${isBehind()?MONTHS[d.m-1]+" check-in is still open":"Time for your "+MONTHS[d.m-1]+" check-in"}</span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`:""}
   ${backupOverdue()?`<button class="card glass" data-act="backup" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Backup</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">${S.lastBackup?"Last backup: "+backupLabel():"No backup yet"}</span><span class="muted" style="font-size:13px">Download one to your Files so your data is safe</span></span><span style="color:var(--accent);font-weight:600;font-size:15px">Back up</span></button>`:""}
   <section class="card glass" data-act="info" data-k="nw" role="button" tabindex="0" aria-label="Net worth details">
     <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:15px">Net worth</span>
@@ -270,7 +278,7 @@ function home(){
       ${l6.length?`<span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:none;padding-left:12px;border-left:1px solid var(--line)"><span class="muted" style="font-size:12px">Avg per month</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(l6.reduce((s,x)=>s+x.saved,0)/l6.length)}</span><span class="muted" style="font-size:12px">saved of ${fmt(l6.reduce((s,x)=>s+x.income,0)/l6.length)}</span></span>`:""}
     </button>
   </div>
-  ${propCard(b)}`;
+  ${propRow(b)}`;
 }
 
 /* Home: compact "On track" card (same engine as Goals) */
@@ -422,15 +430,6 @@ function goals(){
   const gl=[{n:"Holiday budget",v:b.holiday,t:S.holidayTarget,c:"#14A3A0",k:"hol"},{n:"Emergency fund (cash)",v:b.cash,t:S.emergency,c:"#2F7DF6",k:"emer"}]
     .concat(S.pots.map(pt=>({n:esc(pt.name),v:b.pots[pt.id],t:pt.target,c:pt.color,k:"pot",a:pt.id,nofi:!pt.fi})));
   return `<h1>Goals</h1>
-  <section class="card glass" data-act="info" data-k="fi" role="button" tabindex="0" aria-label="Financial goal details">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:17px;font-weight:600">Financial goal</span><span class="muted" style="font-size:13px">Goal ${chf(S.fi)}</span></div>
-    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="big" style="font-size:40px">${pct.toFixed(1)}%</span><span class="muted" style="font-size:15px">${chf(fiBase)} · excl. holiday${b.potOut?" &amp; spending goals":""}</span></div>
-    <span class="track" style="flex:none;height:10px"><span style="width:${Math.min(pct,100)}%;background:linear-gradient(90deg,#5C9BFF,#8E4FD8)"></span></span>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;border-radius:18px;padding:12px 14px;background:var(--field);border:1px solid var(--fieldb)">
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Projected to reach goal</span><span style="font-size:22px;font-weight:700">≈ ${projYear(fiBase,true)}</span></span>
-      <span class="muted" style="font-size:12px;text-align:right;line-height:1.4">at avg ${chf(avg)}/month<br>and ${fmtPct(midRet())} on stocks</span>
-    </div>
-  </section>
   ${onTrackCard()}
   ${propCard(b)}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="section" style="margin:0">Savings goals</div><button class="link" data-act="addgoal" style="font-size:17px">+ Add</button></div>
@@ -451,15 +450,12 @@ function settings(){
   const fld=(id,label,val,suffix)=>`<label class="row" for="${id}"><span style="flex:1">${label}</span><input class="val" id="${id}" inputmode="decimal" value="${val}" data-set="${id}" aria-label="${label}">${suffix?`<span class="muted">${suffix}</span>`:""}</label>`;
   const rb=(act,label,color,last)=>`<button class="row" data-act="${act}" style="border:0;${last?"":"border-bottom:1px solid var(--line);"}background:transparent;color:${color||"var(--accent)"};font-weight:600;text-align:left">${label}</button>`;
   return `<h1>Settings</h1>
-  <div class="section">Goals &amp; calculations</div>
-  <div class="list glass">${fld("s-fi","Financial goal ("+CUR()+")",fmt(S.fi))}${fld("s-hol","Holiday budget ("+CUR()+")",fmt(S.holidayTarget))}${fld("s-emer","Emergency fund ("+CUR()+")",fmt(S.emergency))}${fld("s-eq","Property equity share",S.equity,"%")}${fld("s-res","Property safety reserve ("+CUR()+")",fmt(S.reserve||0))}</div>
-  <p class="note">Holiday money is shown in totals but not counted toward the financial goal. Changes update Home and Goals right away.</p>
   <div class="section">Check-in</div>
   <div class="list glass">
     ${daySelect("s-ciday")}
     <div class="row" data-act="switch"><span id="rem-l" style="flex:1">Reminder · 19:00</span><button class="switch" role="switch" aria-checked="${S.reminder}" aria-labelledby="rem-l" data-act="switch"></button></div>
   </div>
-  <p class="note">Days 1–14 count for the previous month: on the 1st of November you log October. Later days count for the same month. From your check-in day, Safe reminds you when you open it. Phone notifications follow in the next update. If a month was missed, Safe asks for that month first.</p>
+  <p class="note">Days 1–14 count for the previous month: on the 1st of November you log October. Later days count for the same month. From your check-in day, Safe reminds you when you open it. If a month was missed, Safe asks for that month first.</p>
   <div class="section">Backup</div>
   <div class="list glass">${rb("backup","Download backup")}${rb("restore","Restore from backup file","",1)}</div>
   <p class="note">The backup is a file saved in your Files app; you choose where, e.g. On My iPhone or iCloud Drive. Last backup: ${backupLabel()}. If it gets older than 2 months, Safe reminds you after a check-in and on Home. Restoring replaces the data on this iPhone.</p>
@@ -618,14 +614,15 @@ function navSync(sc){if(!sc)return;const host=sc.classList.contains("fscroll")?s
   nb.classList.toggle("on",on);host.classList.toggle("navon",on);}
 let navRaf=0;
 function navLater(sc){if(navRaf)return;navRaf=requestAnimationFrame(()=>{navRaf=0;navSync(sc);});}
-const TABS=[["home","Home"],["checkin","Check-in"],["history","History"],["goals","Goals"],["settings","Settings"]];
+const TABS=[["home","Home"],["history","History"],["goals","Goals"],["settings","Settings"]];
 function render(keepScroll){
   const bar=document.getElementById("demotag"),showBar=S.demo||!S.setupDone;
   bar.hidden=!showBar;
   bar.innerHTML=(S.demo?`<span class="demotag-pill glass">Demo</span>`:"")+(!S.setupDone?`<button class="demo-setup glass" data-act="startsetup">Start setup<span aria-hidden="true">›</span></button>`:"");
   document.getElementById("frame").classList.toggle("demo",showBar);
   const y=scr.scrollTop;
-  let html=({home,checkin,history,goals,settings})[S.tab]();
+  if(!TABS.some(t=>t[0]===S.tab))S.tab="home";
+  let html=({home,history,goals,settings})[S.tab]();
   if(TIPS[S.tab]&&!(S.tipsSeen||{})[S.tab]&&!FL)html=html.includes("<!--tip-->")?html.replace("<!--tip-->",tipCard(S.tab)):html.replace(/<\/h1>(<\/div>)?/,m=>m+tipCard(S.tab));
   scr.innerHTML=html;
   drawTabs();
@@ -720,7 +717,7 @@ function openSheet(i){
   editI=(i===undefined||i===null)?null:i;
   const isNew=editI===null, r=isNew?null:S.months[editI];
   const d=isNew?(dueMonth()||{y:S.today.y,m:S.today.m}):null;
-  if(isNew&&!dueMonth()){S.tab="checkin";render();toast(`${MONTHS[cur().m-1]} is already logged`);return;}
+  if(isNew&&!dueMonth()){S.tab="home";render();toast(`${MONTHS[cur().m-1]} is already logged`);return;}
   const prevIdx=isNew?L():editI-1, prevVal=prevIdx>=0?S.months[prevIdx].stockValue:0;
   const y=isNew?d.y:r.y, m=isNew?d.m:r.m;
   const has=!!cur();
@@ -785,7 +782,7 @@ function openSheet(i){
     const rec={income:c.inc,saved:c.sv,stocks:c.st,property:c.pr,holiday:c.ho,cash:c.cash,stockValue:c.val,pots:c.pots,est:false};
     if(editI===null){S.months.push(Object.assign({y,m,goal:S.nextGoal||null},rec));S.nextGoal=c.goal;close();
       const nd=dueMonth();
-      if(nd){S.tab="checkin";render();toast(`${MONTHS[m-1]} saved. ${MONTHS[nd.m-1]} is open too.`,[`Check in ${MS[nd.m-1]}`,"sheet"]);}
+      if(nd){S.tab="home";render();toast(`${MONTHS[m-1]} saved. ${MONTHS[nd.m-1]} is open too.`,[`Check in ${MS[nd.m-1]}`,"sheet"]);}
       else{S.tab="home";render();backupOverdue()?toast(`${MONTHS[m-1]} saved. Last backup is over 2 months old.`,["Back up","backup"]):toast(`${MONTHS[m-1]} saved`);}}
     else{Object.assign(S.months[editI],rec,{goal:c.goal||S.months[editI].goal});const name=`${MONTHS[S.months[editI].m-1]} ${S.months[editI].y}`;close();render(true);toast(`${name} updated`);}
   });
@@ -1015,11 +1012,11 @@ function openGuide(){
     "","",['data-act="guideclose"',"Settings"]);
 }
 const TIPS={
-  home:"This is your overview. Tap any card or row to see details and how it’s calculated.",
+  home:"This is your overview. Tap + to log a month; when a check-in is due, a banner appears here. Tap any card to see details.",
   checkin:"Log each month here, ideally on your check-in day. You can edit or delete a month later in History.",
   history:"Switch between months, quarters and years. Tap a month to edit it.",
   goals:"Tap “On track” to enter your birth year and goal age and see if you’ll reach your goal. Tap any goal to change its target.",
-  settings:"Change your goals and return assumptions here. Back up regularly: your data lives only on this iPhone. “How Safe works” explains everything."
+  settings:"Pick your check-in day, currency and reminder here. Goal amounts are changed directly in Goals. Back up regularly: your data lives only on this iPhone. “How Safe works” explains everything."
 };
 function tipCard(k){return `<div class="card glass tip" role="note" style="flex-direction:row;align-items:flex-start;gap:12px;padding:14px 16px"><span style="width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:16px;flex:none">i</span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="font-size:15px;line-height:1.4">${TIPS[k]}</span><button class="link" data-act="tip" data-k="${k}" style="align-self:flex-start;padding:0;font-weight:600">Got it</button></span></div>`;}
 function openFirst(){FL=true;drawFirst("welcome");}
@@ -1234,7 +1231,7 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "addgoal": openGoalSheet(null);break;
     case "goaledit": openGoalSheet(t.dataset.a);break;
     case "delpot": deletePot(t.dataset.a);break;
-    case "notif": close();if(isLogged()){S.tab="checkin";render();toast("This month is already logged");}else openSheet(null);break;
+    case "notif": close();if(isLogged()){S.tab="home";render();toast("This month is already logged");}else openSheet(null);break;
     case "due": S.tab="home";render();openDue();break;
     case "later": close();toast("Safe will remind you again tomorrow");break;
     case "flrestore": pickBackup(true);break;
