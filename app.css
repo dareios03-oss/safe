@@ -274,3 +274,9 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 /* back button: round glass circle with chevron (matches the close button and iOS 27) */
 .backbtn{left:16px;width:44px;height:44px;min-height:44px;padding:0;border-radius:22px;justify-content:center;color:var(--ink);gap:0}
 .backbtn svg{margin-left:-2px}
+
+/* floating sheet: inset from the screen edges, rounded on all corners (like iOS 26/27 and Spotify) */
+.sheet{left:8px;right:8px;bottom:8px;border-radius:38px;border:1px solid var(--gb);overflow:hidden;box-shadow:0 12px 50px var(--gsh)}
+.sheet .inner{padding-bottom:calc(env(safe-area-inset-bottom,0px)*.6 + 20px)}
+.sheet .inner>.shead{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+.sheet .inner>.shead::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--sheet);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%)}
