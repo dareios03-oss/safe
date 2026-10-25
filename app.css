@@ -280,3 +280,8 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 .sheet .inner{padding-bottom:calc(env(safe-area-inset-bottom,0px)*.6 + 20px)}
 .sheet .inner>.shead{background:transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
 .sheet .inner>.shead::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--sheet);-webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%)}
+
+/* sheet corners follow the iPhone screen corners (concentric: screen radius minus the 8px gap) */
+:root{--devr:55px}
+@media (width:402px),(width:440px){:root{--devr:62px}}
+.sheet{border-radius:calc(var(--devr) - 8px)}
