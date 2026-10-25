@@ -9,20 +9,21 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.8.0";
+const VERSION="1.9.0";
 
 /* ---------- state ---------- */
-function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0};}
+function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0,oneoffs:[],assets:[]};}
 const S=Object.assign(emptyData(),{fi:1000000,holidayTarget:4000,equity:20,reserve:0,pp:{income:0,rate:5,upkeep:1,amortTo:66.7,amortYears:15,share:33.3},birthYear:0,fiAge:50,chartAge:62,tipsSeen:{},ciDay:24,currency:"CHF",since:null,sinceTo:null,ot:{best:8,mid:5,worst:2},ret:5,emergency:18000,reminder:false,tab:"home",hmode:"quarter",hkey:null,
   lastBackup:null,backupYm:null,createdYm:null,setupDone:false,welcomed:false,demo:false,lastDuePrompt:null,today:{y:2000,m:1,d:1}});
 let REAL=null;
-const PKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay","currency","since","sinceTo"];
+const PKEYS=["months","start","pots","nextGoal","oneoffs","assets","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","reminder","hmode","lastBackup","backupYm","createdYm","setupDone","welcomed","demo","lastDuePrompt","tipsSeen","ciDay","currency","since","sinceTo"];
 function refreshToday(){const d=new Date();S.today={y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()};}
 refreshToday();
 let saveT=null,ready=false;
 function persist(){if(!ready)return;const o={version:1};PKEYS.forEach(k=>o[k]=S[k]);o.real=REAL;SafeStore.save(o);}
 function normalize(){
   S.months.forEach(r=>{if(!r.pots)r.pots={};});
+  if(!Array.isArray(S.oneoffs))S.oneoffs=[];if(!Array.isArray(S.assets))S.assets=[];
   S.months.sort((x,y)=>ym(x.y,x.m)-ym(y.y,y.m));
   S.start=Object.assign({cash:0,property:0,holiday:0,stockValue:0,paid:0},S.start||{});
   if(!Array.isArray(S.pots))S.pots=[];
@@ -38,10 +39,10 @@ function demoData(){
     const pots=i>=9?{demo1:200}:{};const st=1080,pr=405,ho=200;
     v=v+st+gains[i%gains.length]*1.35;
     ms.push({y,m,income,saved,stocks:st,property:pr,holiday:ho,pots,cash:saved-st-pr-ho-(pots.demo1||0),stockValue:Math.round(v),goal:2700,est:false});}
-  return {months:ms,start:{cash:9000,property:1500,holiday:300,stockValue:4000,paid:3600},pots:[{id:"demo1",name:"New car",target:12000,fi:false,color:"#E0457B"}],nextGoal:2700};
+  return {months:ms,start:{cash:9000,property:1500,holiday:300,stockValue:4000,paid:3600},pots:[{id:"demo1",name:"New car",target:12000,fi:false,color:"#E0457B"}],nextGoal:2700,oneoffs:[],assets:[]};
 }
-function enterDemo(){if(S.demo)return;REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,birthYear:S.birthYear,fiAge:S.fiAge,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{birthYear:1994,fiAge:50,demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});}
-function leaveDemo(){if(!S.demo)return;Object.assign(S,{birthYear:0,fiAge:50},REAL||emptyData(),{demo:false,hkey:null});REAL=null;}
+function enterDemo(){if(S.demo)return;REAL={months:S.months,start:S.start,pots:S.pots,nextGoal:S.nextGoal,oneoffs:S.oneoffs,assets:S.assets,birthYear:S.birthYear,fiAge:S.fiAge,lastBackup:S.lastBackup,backupYm:S.backupYm};Object.assign(S,demoData(),{birthYear:1994,fiAge:50,demo:true,hkey:null,lastBackup:new Date().toISOString(),backupYm:ym(S.today.y,S.today.m)});}
+function leaveDemo(){if(!S.demo)return;Object.assign(S,{birthYear:0,fiAge:50,oneoffs:[],assets:[]},REAL||emptyData(),{demo:false,hkey:null});REAL=null;}
 const backupLabel=()=>S.lastBackup?new Date(S.lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}):"never";
 const backupOverdue=()=>S.months.length>0&&ym(S.today.y,S.today.m)-(S.backupYm??S.createdYm??ym(S.today.y,S.today.m))>=2;
 
@@ -50,9 +51,15 @@ function bal(i){
   const b={cash:S.start.cash,property:S.start.property,holiday:S.start.holiday,paid:S.start.paid||0,value:S.start.stockValue||0,pots:{}};
   S.pots.forEach(p=>b.pots[p.id]=0);
   for(let k=0;k<=i&&k<S.months.length;k++){const r=S.months[k];b.cash+=r.cash;b.property+=r.property;b.holiday+=r.holiday;b.paid+=r.stocks;b.value=r.stockValue;for(const id in (r.pots||{}))if(id in b.pots)b.pots[id]+=r.pots[id];}
+  /* one-off amounts (inheritance, gift, bonus): added on their month, not part of monthly saving */
+  const lastK=i>=L()||i<0?Infinity:ym(S.months[i].y,S.months[i].m),refK=i>=0&&S.months[Math.min(i,L())]?ym(S.months[Math.min(i,L())].y,S.months[Math.min(i,L())].m):-1;
+  b.oneoff=0;(S.oneoffs||[]).forEach(o=>{const k=ym(o.y,o.m);if(k>lastK)return;b.oneoff+=o.amount;
+    if(o.to==="stocks"){b.paid+=o.amount;if(k>refK)b.value+=o.amount;}else if(o.to==="property")b.property+=o.amount;else if(o.to==="holiday")b.holiday+=o.amount;else if(o.to in b.pots)b.pots[o.to]+=o.amount;else b.cash+=o.amount;});
+  /* owned property (e.g. an inherited home): equity = value - mortgage; counts toward the goal only if switched on */
+  b.assetEq=0;b.assetFi=0;(S.assets||[]).forEach(a=>{const e=(a.value||0)-(a.debt||0);b.assetEq+=e;if(a.fi)b.assetFi+=e;});
   b.potSum=S.pots.reduce((a,p)=>a+b.pots[p.id],0);
   b.potOut=S.pots.filter(p=>!p.fi).reduce((a,p)=>a+b.pots[p.id],0);
-  b.nw=b.cash+b.value+b.property+b.holiday+b.potSum;b.fi=b.nw-b.holiday-b.potOut;b.gain=b.value-b.paid;return b;
+  b.nw=b.cash+b.value+b.property+b.holiday+b.potSum+b.assetEq;b.fi=b.nw-b.holiday-b.potOut-b.assetEq+b.assetFi;b.gain=b.value-b.paid;return b;
 }
 const L=()=>S.months.length-1;
 const cur=()=>S.months[L()]||null;
@@ -252,11 +259,12 @@ function home(){
   const ep=S.emergency>0?Math.min(Math.max(b.cash,0)/S.emergency,1):0;
   const cashSub=S.emergency>0?`<span style="display:flex;flex-direction:column;gap:4px;margin-top:3px"><span class="muted" style="font-size:12px">${ep>=1?'<b style="color:var(--good)">✓ Emergency fund filled</b>':`Emergency fund ${Math.round(ep*100)}% · ${chf(S.emergency-b.cash)} to go`}</span><span style="height:4px;border-radius:2px;background:var(--track);overflow:hidden;max-width:180px"><span style="display:block;height:4px;width:${ep*100}%;background:${ep>=1?"var(--goodline)":"var(--cash)"}"></span></span></span>`:"";
   const cat=[{n:"Cash savings",v:b.cash,c:"var(--cash)",k:"cat",a:"cash",subHtml:cashSub},{n:"Stocks · paid in",v:b.value,show:b.paid,c:"var(--stocks)",sub:`current value ${fmt(b.value)} (${b.gain>=0?"+":"−"}${fmt(Math.abs(b.gain))}) · volatile`,k:"cat",a:"stocks"},{n:"Property savings",v:b.property,c:"var(--prop)",k:"cat",a:"property"},{n:"Holiday budget",v:b.holiday,c:"var(--hol)",nofi:true,k:"cat",a:"holiday"}]
-    .concat(S.pots.map(pt=>({n:esc(pt.name),v:b.pots[pt.id],c:pt.color,nofi:!pt.fi,k:"pot",a:pt.id})));
+    .concat(S.pots.map(pt=>({n:esc(pt.name),v:b.pots[pt.id],c:pt.color,nofi:!pt.fi,k:"pot",a:pt.id})))
+    .concat((S.assets||[]).map(a=>({n:esc(a.name),v:(a.value||0)-(a.debt||0),c:"#8A6A4F",nofi:!a.fi,k:"asset",a:a.id,sub:a.debt?`value ${fmt(a.value)} · mortgage ${fmt(a.debt)}`:"owned property"})));
   const d=dueMonth();
   return `
   <div class="head"><div><div class="eyebrow">${has?`Latest check-in · ${MONTHS[r.m-1]} ${r.y}`:"No check-ins yet"}</div><h1>Overview</h1></div>
-  <button class="btn round" data-act="sheet" aria-label="New check-in">${IC.plus}</button></div><!--tip-->
+  <button class="btn round" data-act="addmenu" aria-label="Add">${IC.plus}</button></div><!--tip-->
   ${d&&(isBehind()||new Date(S.today.y,S.today.m-1,S.today.d)>=ciDate(d.y,d.m))?`<button class="card glass" data-act="sheet" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill ${isBehind()?"warn":"good"}" style="align-self:center">${isBehind()?"Late":"Due"}</span><span style="flex:1;font-size:15px;font-weight:600">${isBehind()?MONTHS[d.m-1]+" check-in is still open":"Time for your "+MONTHS[d.m-1]+" check-in"}</span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`:""}
   ${backupOverdue()?`<button class="card glass" data-act="backup" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Backup</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">${S.lastBackup?"Last backup: "+backupLabel():"No backup yet"}</span><span class="muted" style="font-size:13px">Download one to your Files so your data is safe</span></span><span style="color:var(--accent);font-weight:600;font-size:15px">Back up</span></button>`:""}
   <section class="card glass" data-act="info" data-k="nw" role="button" tabindex="0" aria-label="Net worth details">
@@ -353,7 +361,7 @@ function psub(p,mode){
   if(mode==="month")return a.est?`Average of the ${a.y} yearly total`:"";
   return `${MONTHS[a.m-1]} – ${MONTHS[z.m-1]}${p.idx.length<(mode==="quarter"?3:12)?" (so far)":""}`;
 }
-function splitOf(idx){const s={stocks:0,property:0,holiday:0,cash:0,saved:0,gain:0,pots:{}};idx.forEach(i=>{const r=S.months[i],pv=i>0?S.months[i-1].stockValue:0;s.stocks+=r.stocks;s.property+=r.property;s.holiday+=r.holiday;s.cash+=r.cash;s.saved+=r.saved;s.gain+=r.stockValue-pv-r.stocks;for(const id in (r.pots||{}))s.pots[id]=(s.pots[id]||0)+r.pots[id];});return s;}
+function splitOf(idx){const s={stocks:0,property:0,holiday:0,cash:0,saved:0,gain:0,pots:{}};idx.forEach(i=>{const r=S.months[i],pv=i>0?S.months[i-1].stockValue:0;s.stocks+=r.stocks;s.property+=r.property;s.holiday+=r.holiday;s.cash+=r.cash;s.saved+=r.saved;s.gain+=r.stockValue-pv-r.stocks-(S.oneoffs||[]).filter(o=>o.to==="stocks"&&ym(o.y,o.m)===ym(r.y,r.m)).reduce((x,o)=>x+o.amount,0);for(const id in (r.pots||{}))s.pots[id]=(s.pots[id]||0)+r.pots[id];});return s;}
 function history(){
   const mode=S.hmode,ps=periods(mode);
   if(!ps.length)return `<h1>History</h1>
@@ -482,8 +490,10 @@ function avgOf(key,n){const xs=S.months.slice(-n);return xs.length?xs.reduce((a,
 function monthsTo(rest,per){if(rest<=0)return "already reached";if(per<=0)return "not at the current pace";const n=Math.ceil(rest/per),r=cur()||blank(),tot=r.y*12+(r.m-1)+n;return `about ${n} month${n===1?"":"s"} (${MONTHS[tot%12]} ${Math.floor(tot/12)})`;}
 let lastInfo=null;
 function openInfo(k,a){
+  if(k==="asset"){openAssetSheet(a);return;}
+  if(k==="oneoff"){openOneoffSheet(a);return;}
   lastInfo={k,a};
-  const i=L(),b=bal(i),p=bal(i-1),r=cur()||blank(),prevVal=i>0?S.months[i-1].stockValue:0,mGain=r.stockValue-prevVal-r.stocks;
+  const i=L(),b=bal(i),p=bal(i-1),r=cur()||blank(),prevVal=i>0?S.months[i-1].stockValue:(S.start.stockValue||0),mGain=r.stockValue-prevVal-r.stocks-(S.oneoffs||[]).filter(o=>o.to==="stocks"&&ym(o.y,o.m)===ym(r.y,r.m)).reduce((s,o)=>s+o.amount,0);
   let title="",body="",action="";
   const kv=rows=>`<div class="field">${rows.map(x=>`<div class="kv"><span class="muted">${x[0]}</span><b style="${x[2]||""}">${x[1]}</b></div>`).join("")}</div>`;
   const sign=v=>(v>=0?"+":"−")+fmt(Math.abs(v));
@@ -494,7 +504,9 @@ function openInfo(k,a){
     body=`<span class="big">${chf(b.nw)}</span>
     ${kv([["Saved in "+MONTHS[r.m-1],sign(r.saved),col(r.saved)],["Market gain on stocks",sign(mGain),col(mGain)],["Change this month",sign(b.nw-p.nw),col(b.nw-p.nw)]])}
     <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,"var(--accent)",h.v.length-1)}
-    <p class="explain">Net worth adds up cash, the current value of your stocks, property savings and the holiday budget. financial goal progress leaves out the holiday budget because you plan to spend it.</p>`;
+    ${oneoffList()}
+    <p class="explain">Net worth adds up cash, the current value of your stocks, property savings, the holiday budget, your goals and owned property (value minus mortgage). Financial goal progress leaves out the holiday budget, goals you plan to spend and property you didn’t switch on.</p>`;
+    action=`<button class="btn" data-act="addoneoff">One-off amount</button><button class="link" data-act="addasset" style="font-size:17px;min-height:48px">Add owned property</button>`;
   }else if(k==="cat"){
     const C={cash:["Cash savings","--cash",b.cash,r.cash,j=>bal(j).cash],stocks:["Stocks","--stocks",b.value,r.stockValue-prevVal,j=>bal(j).value],property:["Property savings","--prop",b.property,r.property,j=>bal(j).property],holiday:["Holiday budget","--hol",b.holiday,r.holiday,j=>bal(j).holiday]}[a];
     const h=last6(C[4]);
@@ -832,7 +844,7 @@ function confirmBox(o){
 
 
 /* ---------- backup file: download + restore from a chosen file ---------- */
-const BKEYS=["months","start","pots","nextGoal","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay","currency","since","sinceTo"];
+const BKEYS=["months","start","pots","nextGoal","oneoffs","assets","fi","holidayTarget","equity","reserve","pp","birthYear","fiAge","chartAge","ot","ret","emergency","ciDay","currency","since","sinceTo"];
 async function downloadBackup(){
   const d=new Date(),stamp=d.toISOString().slice(0,10),name=`Safe-backup-${stamp}.json`;
   const data={};BKEYS.forEach(k=>data[k]=S[k]);
@@ -902,10 +914,79 @@ function openGoalSheet(id){
     else{S.pots.push(Object.assign({id:"p"+Date.now().toString(36),color:POTCOL[S.pots.length%POTCOL.length]},data));close();render(true);toast(`“${esc(data.name)}” added. It now has a line in the check-in.`);}
   });
 }
+const TOS=()=>[["cash","Cash"],["stocks","Stocks"],["property","Property savings"],["holiday","Holiday budget"]].concat(S.pots.map(p=>[p.id,p.name]));
+const toName=t=>{const x=TOS().find(o=>o[0]===t);return x?x[1]:"Cash";};
+function oneoffList(){const xs=(S.oneoffs||[]).slice().sort((a,b)=>ym(b.y,b.m)-ym(a.y,a.m));if(!xs.length)return "";
+  return `<div class="section" style="padding-left:4px">One-off amounts</div><div class="field">${xs.map(o=>`<button type="button" class="row" data-act="info" data-k="oneoff" data-a="${o.id}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink)"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>${esc(o.label||"One-off")}</span><span class="muted" style="font-size:13px">${MONTHS[o.m-1]} ${o.y} · into ${esc(toName(o.to))}</span></span><span class="num">+${fmt(o.amount)}</span></button>`).join("")}</div>`;}
+function openAddMenu(){
+  const d=dueMonth(),it=(act,ic,t,s)=>`<button class="row" data-act="${act}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink);min-height:68px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px">${s}</span></span></button>`;
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="am-t"><span class="grab" aria-hidden="true"></span><div class="inner">
+  <div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="am-t" style="margin:0;font-size:22px;font-weight:700">Add</h2>${XB}</div>
+  <div class="field">${it("sheet",IC.checkin,"Monthly check-in",d?`${MONTHS[d.m-1]} ${d.y}`:"This month is logged – edit it in History")}${it("addoneoff",IC.plus,"One-off amount","Inheritance, gift, bonus – not counted as monthly saving")}${it("addasset",IC.house,"Owned property","e.g. an inherited home: value and mortgage")}</div></div></div>`;
+  bindSwipe(layer.querySelector(".sheet"));
+}
+function openOneoffSheet(id){
+  const o=id?(S.oneoffs||[]).find(x=>x.id===id):null,ref=o?{y:o.y,m:o.m}:{y:S.today.y,m:S.today.m};
+  const ys=[];for(let y=S.today.y;y>=S.today.y-10;y--)ys.push(y);
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="o-t"><span class="grab" aria-hidden="true"></span>
+  <form class="inner" id="of" novalidate>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="o-t" style="margin:0;font-size:17px;font-weight:700">${o?"Edit one-off":"One-off amount"}</h2>${XB}</div>
+    <div class="field">
+      <label class="row" for="o-amt" style="min-height:54px"><span style="flex:1;font-weight:600">Amount (${CUR()})</span><input class="val" id="o-amt" inputmode="decimal" placeholder="0" value="${o?fmt(o.amount):""}" style="font-size:24px;font-weight:700;color:var(--accent);width:150px"></label>
+      <label class="row" for="o-lbl"><span style="flex:1">What was it?</span><input class="val" id="o-lbl" placeholder="e.g. Inheritance" value="${o?esc(o.label||""):""}" maxlength="28" autocomplete="off" style="width:180px"></label>
+    </div>
+    <div class="section" style="padding-left:4px">Where did the money go?</div>
+    <div class="field"><div class="row" style="min-height:58px"><select class="sel" id="o-to" aria-label="Where the money went" style="flex:1">${TOS().map(t=>`<option value="${t[0]}"${(o?o.to:"cash")===t[0]?" selected":""}>${esc(t[1])}</option>`).join("")}</select></div></div>
+    <div class="section" style="padding-left:4px">When</div>
+    <div class="field"><div class="row" style="min-height:58px;gap:8px"><select class="sel" id="o-m" aria-label="Month">${MONTHS.map((n,i)=>`<option value="${i+1}"${ref.m===i+1?" selected":""}>${n}</option>`).join("")}</select><select class="sel" id="o-y" aria-label="Year">${ys.map(y=>`<option value="${y}"${ref.y===y?" selected":""}>${y}</option>`).join("")}</select></div></div>
+    <p class="note">Adds to your net worth and financial goal progress, but not to your monthly saving – so your savings rate and the On track average stay realistic.</p>
+    <button class="btn" type="submit" id="o-save">${o?"Save changes":"Add one-off"}</button>
+    ${o?`<button type="button" class="link" data-act="deloneoff" data-a="${o.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete one-off</button>`:""}
+  </form></div>`;
+  const f=document.getElementById("of"),am=document.getElementById("o-amt"),sv=document.getElementById("o-save");
+  const ok=()=>{sv.disabled=!(parse(am.value)>0);};
+  f.addEventListener("input",()=>{sheetDirty=true;ok();});f.addEventListener("change",()=>{sheetDirty=true;});ok();sheetDirty=false;bindSwipe(layer.querySelector(".sheet"));
+  if(!o)setTimeout(()=>am.focus(),60);
+  f.addEventListener("submit",e=>{e.preventDefault();if(sv.disabled)return;
+    const data={amount:parse(am.value),label:document.getElementById("o-lbl").value.trim(),to:document.getElementById("o-to").value,m:+document.getElementById("o-m").value,y:+document.getElementById("o-y").value};
+    if(ym(data.y,data.m)>ym(S.today.y,S.today.m)){data.y=S.today.y;data.m=S.today.m;}
+    S.oneoffs=S.oneoffs||[];
+    if(o){Object.assign(o,data);close();render(true);toast("One-off updated");}
+    else{S.oneoffs.push(Object.assign({id:"o"+Date.now().toString(36)},data));close();render(true);toast(`+${chf(data.amount)} added to ${toName(data.to)}`);}
+  });
+}
+function openAssetSheet(id){
+  const a=id?(S.assets||[]).find(x=>x.id===id):null;
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="a-t"><span class="grab" aria-hidden="true"></span>
+  <form class="inner" id="af" novalidate>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="a-t" style="margin:0;font-size:17px;font-weight:700">${a?"Edit property":"Owned property"}</h2>${XB}</div>
+    <div class="field">
+      <label class="row" for="a-name"><span style="flex:1">Name</span><input class="val" id="a-name" placeholder="e.g. Grandparents’ house" value="${a?esc(a.name):""}" maxlength="28" autocomplete="off" style="width:190px"></label>
+      <label class="row" for="a-val"><span style="flex:1">Market value (${CUR()})</span><input class="val" id="a-val" inputmode="decimal" placeholder="0" value="${a?fmt(a.value):""}"></label>
+      <label class="row" for="a-debt"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>Mortgage (${CUR()})</span><span class="muted" style="font-size:12px">Leave 0 if there is none</span></span><input class="val" id="a-debt" inputmode="decimal" placeholder="0" value="${a&&a.debt?fmt(a.debt):""}"></label>
+      <div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:15px">Your equity</span><b id="a-eq"></b></div>
+    </div>
+    <div class="field"><div class="row" data-act="afi" style="min-height:62px"><span id="a-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward financial goal</span><span class="muted" style="font-size:13px">Leave off if you live in it; switch on if it could fund your goal (e.g. rented out or to be sold)</span></span><button type="button" class="switch" id="a-fi" role="switch" aria-checked="${a?!!a.fi:false}" aria-labelledby="a-fi-l" data-act="afi"></button></div></div>
+    <p class="note">Equity (value minus mortgage) counts in your net worth. Update the value now and then; it doesn’t change by itself.</p>
+    <button class="btn" type="submit" id="a-save">${a?"Save changes":"Add property"}</button>
+    ${a?`<button type="button" class="link" data-act="delasset" data-a="${a.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete property</button>`:""}
+  </form></div>`;
+  const f=document.getElementById("af"),nm=document.getElementById("a-name"),vl=document.getElementById("a-val"),db=document.getElementById("a-debt"),sv=document.getElementById("a-save"),eq=document.getElementById("a-eq");
+  const ok=()=>{const v=parse(vl.value),d=parse(db.value||0);eq.textContent=chf(v-d);sv.disabled=!(nm.value.trim()&&v>0&&d>=0);};
+  f.addEventListener("input",()=>{sheetDirty=true;ok();});ok();sheetDirty=false;bindSwipe(layer.querySelector(".sheet"));
+  if(!a)setTimeout(()=>nm.focus(),60);
+  f.addEventListener("submit",e=>{e.preventDefault();if(sv.disabled)return;
+    const data={name:nm.value.trim(),value:parse(vl.value),debt:parse(db.value||0),fi:document.getElementById("a-fi").getAttribute("aria-checked")==="true"};
+    S.assets=S.assets||[];
+    if(a){Object.assign(a,data);close();render(true);toast("Property updated");}
+    else{S.assets.push(Object.assign({id:"a"+Date.now().toString(36)},data));close();render(true);toast(`“${esc(data.name)}” added to your net worth`);}
+  });
+}
 function deletePot(id){
   const pt=S.pots.find(p=>p.id===id);if(!pt)return;const v=bal(L()).pots[id]||0;
   confirmBox({title:`Delete “${esc(pt.name)}”?`,text:`The ${chf(v)} saved for it moves back to cash. Past check-ins keep their totals.`,ok:"Delete goal",run:()=>{
     S.months.forEach(r=>{const x=(r.pots||{})[id]||0;if(x)r.cash+=x;if(r.pots)delete r.pots[id];});
+    (S.oneoffs||[]).forEach(o=>{if(o.to===id)o.to="cash";});
     S.pots=S.pots.filter(p=>p.id!==id);close();render(true);toast(`Goal deleted · ${chf(v)} moved to cash`);}});
 }
 
@@ -1229,6 +1310,12 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "delmonth": {const r=S.months[editI],name=`${MONTHS[r.m-1]} ${r.y}`,idx=editI;confirmBox({title:`Delete ${name}?`,text:`Its ${chf(r.saved)} saved and the split are removed from History and from your balances. It can't be undone.`,ok:"Delete month",run:()=>{S.months.splice(idx,1);S.hkey=null;close();render(true);toast(`${name} deleted`);}});break;}
     case "confirm": {const fn=pending;if(fn)fn();break;}
     case "addgoal": openGoalSheet(null);break;
+    case "addmenu": openAddMenu();break;
+    case "addoneoff": openOneoffSheet(null);break;
+    case "addasset": openAssetSheet(null);break;
+    case "afi": {const sw=document.getElementById("a-fi");sw.setAttribute("aria-checked",sw.getAttribute("aria-checked")!=="true");sheetDirty=true;break;}
+    case "deloneoff": {const id=t.dataset.a,o=(S.oneoffs||[]).find(x=>x.id===id);if(!o)break;confirmBox({title:"Delete this one-off?",text:`${chf(o.amount)} will be removed from ${toName(o.to)}.`,ok:"Delete",run:()=>{S.oneoffs=S.oneoffs.filter(x=>x.id!==id);close();render(true);toast("One-off deleted");}});break;}
+    case "delasset": {const id=t.dataset.a,a=(S.assets||[]).find(x=>x.id===id);if(!a)break;confirmBox({title:`Delete “${esc(a.name)}”?`,text:"It will be removed from your net worth.",ok:"Delete",run:()=>{S.assets=S.assets.filter(x=>x.id!==id);close();render(true);toast("Property deleted");}});break;}
     case "goaledit": openGoalSheet(t.dataset.a);break;
     case "delpot": deletePot(t.dataset.a);break;
     case "notif": close();if(isLogged()){S.tab="home";render();toast("This month is already logged");}else openSheet(null);break;
