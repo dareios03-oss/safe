@@ -295,3 +295,5 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 .sheet .inner>.shead{top:-14px;margin-top:-14px;padding-top:16px}
 .sheet .inner>.shead::before{background:var(--sheetS);-webkit-backdrop-filter:none;backdrop-filter:none}
 .sheet .inner>.shead::after{background:linear-gradient(180deg,var(--sheetS),color-mix(in srgb,var(--sheetS) 0%,transparent))}
+/* v1.9.3: calmer top corners; bottom stays concentric with the screen */
+.sheet{border-radius:34px 34px calc(var(--devr) - 8px) calc(var(--devr) - 8px)}
