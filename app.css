@@ -285,3 +285,13 @@ section[data-act]:active:not(:has([data-act]:active)){transform:scale(.985)}
 :root{--devr:55px}
 @media (width:402px),(width:440px){:root{--devr:62px}}
 .sheet{border-radius:calc(var(--devr) - 8px)}
+
+/* v1.9.2: one solid sheet colour so the header and the body match; no grab bar */
+:root{--sheetS:#EEF1F9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sheetS:#1C1E2C}}
+:root[data-theme="dark"]{--sheetS:#1C1E2C}
+.sheet{background:var(--sheetS)}
+.sheet .inner{padding-top:14px}
+.sheet .inner>.shead{top:-14px;margin-top:-14px;padding-top:16px}
+.sheet .inner>.shead::before{background:var(--sheetS);-webkit-backdrop-filter:none;backdrop-filter:none}
+.sheet .inner>.shead::after{background:linear-gradient(180deg,var(--sheetS),color-mix(in srgb,var(--sheetS) 0%,transparent))}

@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.9.1";
+const VERSION="1.9.2";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0,oneoffs:[],assets:[]};}
@@ -608,7 +608,7 @@ function openInfo(k,a){
     title="About Safe";
     body=`${kv([["Version",VERSION],["Months stored",String(S.months.length)],["Last backup",backupLabel()]])}<p class="explain">Safe keeps everything on this iPhone and works offline. Back up regularly: if the app is deleted, the data is gone unless you have a backup file.</p>`;
   }
-  const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t"><span class="grab" aria-hidden="true"></span>
+  const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t">
   <div class="inner"><div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
   if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
   bindSwipe([...layer.querySelectorAll(".sheet")].pop());
@@ -740,7 +740,7 @@ function openSheet(i){
   const late=isNew&&isBehind();
   const potRows=S.pots.map(pt=>`<label class="row" for="f-pot-${pt.id}"><span class="dot" style="background:${pt.color}"></span><span style="flex:1">${esc(pt.name)}</span><input class="val" id="f-pot-${pt.id}" data-pot="${pt.id}" inputmode="decimal" value="${v.pots[pt.id]?fmt(v.pots[pt.id]):""}" placeholder="${lr&&isNew&&lr.pots&&lr.pots[pt.id]?fmt(lr.pots[pt.id]):"0"}" style="width:100px"></label>`).join("");
   layer.innerHTML=`<div class="scrim" data-act="close"></div>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><span class="grab" aria-hidden="true"></span>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">
   <form class="inner" id="ci" novalidate>
     <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="sh-t" style="margin:0;font-size:17px;font-weight:700">${MONTHS[m-1]} ${isNew?"check-in":y}</h2>${XB}</div>
     ${late?`<p class="note" style="color:var(--warn);font-weight:600">Late check-in: use your numbers from the end of ${MONTHS[m-1]}.</p>`:""}
@@ -892,7 +892,7 @@ function badFile(name,fromSetup){
 let goalEdit=null;
 function openGoalSheet(id){
   const pt=id?S.pots.find(p=>p.id===id):null;goalEdit=pt?pt.id:null;
-  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="g-t"><span class="grab" aria-hidden="true"></span>
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="g-t">
   <form class="inner" id="gf" novalidate>
     <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="g-t" style="margin:0;font-size:17px;font-weight:700">${pt?"Edit goal":"New savings goal"}</h2>${XB}</div>
     <div class="field">
@@ -920,7 +920,7 @@ function oneoffList(){const xs=(S.oneoffs||[]).slice().sort((a,b)=>ym(b.y,b.m)-y
   return `<div class="section" style="padding-left:4px">One-off amounts</div><div class="field">${xs.map(o=>`<button type="button" class="row" data-act="info" data-k="oneoff" data-a="${o.id}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink)"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>${esc(o.label||"One-off")}</span><span class="muted" style="font-size:13px">${MONTHS[o.m-1]} ${o.y} · into ${esc(toName(o.to))}</span></span><span class="num">+${fmt(o.amount)}</span></button>`).join("")}</div>`;}
 function openAddMenu(){
   const d=dueMonth(),it=(act,ic,t,s)=>`<button class="row" data-act="${act}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink);min-height:68px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px">${s}</span></span></button>`;
-  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="am-t"><span class="grab" aria-hidden="true"></span><div class="inner">
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="am-t"><div class="inner">
   <div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="am-t" style="margin:0;font-size:22px;font-weight:700">Add</h2>${XB}</div>
   <div class="field">${it("sheet",IC.checkin,"Monthly check-in",d?`${MONTHS[d.m-1]} ${d.y}`:"This month is logged – edit it in History")}${it("addoneoff",IC.plus,"One-off amount","Inheritance, gift, bonus – not counted as monthly saving")}${it("addasset",IC.house,"Owned property","e.g. an inherited home: value and mortgage")}</div></div></div>`;
   bindSwipe(layer.querySelector(".sheet"));
@@ -928,7 +928,7 @@ function openAddMenu(){
 function openOneoffSheet(id){
   const o=id?(S.oneoffs||[]).find(x=>x.id===id):null,ref=o?{y:o.y,m:o.m}:{y:S.today.y,m:S.today.m};
   const ys=[];for(let y=S.today.y;y>=S.today.y-10;y--)ys.push(y);
-  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="o-t"><span class="grab" aria-hidden="true"></span>
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="o-t">
   <form class="inner" id="of" novalidate>
     <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="o-t" style="margin:0;font-size:17px;font-weight:700">${o?"Edit one-off":"One-off amount"}</h2>${XB}</div>
     <div class="field">
@@ -957,7 +957,7 @@ function openOneoffSheet(id){
 }
 function openAssetSheet(id){
   const a=id?(S.assets||[]).find(x=>x.id===id):null;
-  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="a-t"><span class="grab" aria-hidden="true"></span>
+  layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="a-t">
   <form class="inner" id="af" novalidate>
     <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="a-t" style="margin:0;font-size:17px;font-weight:700">${a?"Edit property":"Owned property"}</h2>${XB}</div>
     <div class="field">
