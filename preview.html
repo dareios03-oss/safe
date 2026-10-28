@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>Safe · Design preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F2F2F7;--card:#FFFFFF;--card2:#E9E9EF;--ink:#0B0B0F;--ink2:#6C6C72;--line:rgba(60,60,67,.14);--glow1:#2F6BFF;--glow2:#7B4DFF;--glowop:.55;
+--blue:#2F6BFF;--green:#22A45D;--orange:#F06A2B;--teal:#11A8A0;--purple:#8A55F7;--pink:#E0457B;--seg:#E3E3E9;--segon:#FFFFFF;--tab:rgba(250,250,252,.82)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--card:#1C1C1E;--card2:#2C2C2E;--ink:#F5F5F7;--ink2:#8E8E93;--line:rgba(255,255,255,.1);--glowop:.75;
+--blue:#4D8BFF;--green:#34C76F;--orange:#FF7A3D;--teal:#2CC9BE;--purple:#A27BFF;--pink:#FF5C8F;--seg:#1C1C1E;--segon:#3A3A3C;--tab:rgba(40,40,44,.78)}}
+:root[data-theme="dark"]{--bg:#000;--card:#1C1C1E;--card2:#2C2C2E;--ink:#F5F5F7;--ink2:#8E8E93;--line:rgba(255,255,255,.1);--glowop:.75;
+--blue:#4D8BFF;--green:#34C76F;--orange:#FF7A3D;--teal:#2CC9BE;--purple:#A27BFF;--pink:#FF5C8F;--seg:#1C1C1E;--segon:#3A3A3C;--tab:rgba(40,40,44,.78)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{overflow:hidden}
+.page{position:absolute;inset:0;overflow-y:auto;background:var(--bg);padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 130px;transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+.page.off{transform:translateX(100%)}
+.page.under{transform:translateX(-25%)}
+.glow{position:absolute;left:0;right:0;top:0;height:380px;pointer-events:none;opacity:var(--glowop);
+background:radial-gradient(120% 90% at 85% 0%,var(--glow2) 0%,transparent 60%),radial-gradient(120% 100% at 0% 0%,var(--glow1) 0%,transparent 65%);
+-webkit-mask:linear-gradient(180deg,#000 0%,#000 35%,transparent 100%);mask:linear-gradient(180deg,#000 0%,#000 35%,transparent 100%)}
+.rel{position:relative}
+.top{display:flex;justify-content:space-between;align-items:center;height:56px}
+.pill{font-size:12px;font-weight:700;letter-spacing:.6px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.22);color:var(--ink)}
+.plus{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.25);font-size:26px;font-weight:300;color:var(--ink)}
+.eyebrow{margin-top:34px;font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--ink);opacity:.7}
+h1{font-size:40px;font-weight:800;letter-spacing:-1px;margin:2px 0 22px}
+h2{font-size:24px;font-weight:700;letter-spacing:-.4px;margin:28px 4px 12px;display:flex;justify-content:space-between;align-items:baseline}
+h2 a{font-size:17px;font-weight:500;color:var(--blue);text-decoration:none}
+.card{background:var(--card);border-radius:26px;padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:transform .15s}
+.card:active{transform:scale(.98)}
+.ch{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:600;margin-bottom:12px}
+.ch .k{display:flex;align-items:center;gap:7px}
+.ch .r{color:var(--ink2);font-weight:500;font-size:15px;display:flex;align-items:center;gap:8px}
+.ch .r::after{content:"";width:8px;height:8px;border-right:2px solid var(--ink2);border-top:2px solid var(--ink2);transform:rotate(45deg);opacity:.7}
+.ic{width:18px;height:18px}
+.big{font-size:34px;font-weight:700;letter-spacing:-.8px}
+.big small{font-size:17px;font-weight:600;color:var(--ink2);margin-left:4px;letter-spacing:0}
+.chip{display:inline-block;margin-top:6px;font-size:13px;font-weight:600;padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:16px 0 6px}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:16px}
+.row+.row{border-top:1px solid var(--line)}
+.dot{width:9px;height:9px;border-radius:5px;flex:none}
+.row .n{flex:1}.row .n small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+.row .v{font-weight:600;font-variant-numeric:tabular-nums}
+.tag{font-size:11.5px;color:var(--ink2);background:var(--card2);padding:3px 8px;border-radius:99px}
+.track{height:8px;border-radius:4px;background:var(--card2);position:relative;margin:14px 0 6px}
+.track i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.lbls{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2)}
+.note{font-size:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);line-height:1.4}
+.badge{font-size:12px;font-weight:700;padding:4px 9px;border-radius:99px;background:color-mix(in srgb,var(--orange) 18%,transparent);color:var(--orange)}
+.split{display:flex;align-items:center;gap:14px}
+.ring{width:58px;height:58px;flex:none}
+.split .s{flex:1}.split .s b{font-size:17px}.split .s div{font-size:13px;color:var(--ink2)}
+.split .e{text-align:right;border-left:1px solid var(--line);padding-left:14px}
+.split .e div{font-size:12.5px;color:var(--ink2)}.split .e b{font-size:20px}
+.linkrow{background:var(--card);border-radius:22px;padding:16px 18px;display:flex;align-items:center;gap:14px;font-size:17px;margin-bottom:12px}
+.linkrow::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--ink2);border-top:2px solid var(--ink2);transform:rotate(45deg);opacity:.7}
+/* tab bar */
+.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 8px);width:min(361px,calc(100% - 32px));height:64px;border-radius:32px;background:var(--tab);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--line);display:flex;padding:4px;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.tabs div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink);border-radius:28px}
+.tabs div.on{background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--blue)}
+.tabs svg{width:22px;height:22px}
+/* detail */
+.dtop{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;height:56px;position:sticky;top:0;z-index:5}
+.dtop .t{text-align:center;font-size:18px;font-weight:700}
+.rb{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);color:var(--ink);font-size:24px;cursor:pointer}
+.rb svg{width:20px;height:20px}
+.seg{display:flex;background:var(--seg);border-radius:20px;padding:3px;margin:14px 0 18px}
+.seg div{flex:1;text-align:center;font-size:15px;font-weight:600;padding:7px 0;border-radius:17px;cursor:pointer}
+.seg div.on{background:var(--segon);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.cap{font-size:13px;font-weight:600;color:var(--ink2);letter-spacing:.5px}
+.dbig{font-size:44px;font-weight:700;letter-spacing:-1.2px;line-height:1.1}
+.dbig small{font-size:20px;color:var(--ink2);font-weight:600;letter-spacing:0;margin-left:6px}
+.sub{font-size:16px;color:var(--ink2);font-weight:600;margin-top:4px}
+.chart{position:relative;height:260px;margin:18px 0 6px}
+.chart svg{width:100%;height:100%;overflow:visible}
+.tabs-sp{height:20px}
+.hl{background:var(--card);border-radius:26px;padding:16px 18px;margin-bottom:12px}
+.hl .ch{margin-bottom:8px}
+.hl p{font-size:17px;font-weight:600;line-height:1.35}
+.cmp{display:flex;gap:24px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.cmp div{font-size:13px;color:var(--ink2);font-weight:600}.cmp b{display:block;font-size:24px;margin-top:2px}
+.sheetband .hl{background:var(--card2)}
+.sheetband{background:var(--card);margin:20px -16px 0;padding:6px 16px 20px;border-radius:30px 30px 0 0}
+:root[data-theme] .themebtn{}
+.themebtn{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 70px);z-index:30;font-size:12px;font-weight:600;padding:6px 10px;border-radius:99px;background:var(--card);color:var(--ink);border:1px solid var(--line);display:none}
+</style></head>
+<body>
+<button class="themebtn" id="th">Light / Dark</button>
+<!-- HOME -->
+<section class="page" id="home">
+  <div class="glow"></div>
+  <div class="rel">
+    <div class="top"><span class="pill">DEMO</span><span class="plus">+</span></div>
+    <div class="eyebrow">Latest check-in · September 2026</div>
+    <h1>Overview</h1>
+
+    <div class="card" data-go="nw">
+      <div class="ch"><span class="k" style="color:var(--blue)"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M4 10l8-5 8 5v1H4zM6 12h2v6H6zm5 0h2v6h-2zm5 0h2v6h-2zM4 19h16v2H4z"/></svg>Net worth</span><span class="r">Sep 2026</span></div>
+      <div class="big">CHF 70’503</div>
+      <span class="chip">▲ CHF 2’905 this month</span>
+      <div class="bar"><i style="flex:23.7;background:var(--blue)"></i><i style="flex:29.9;background:var(--purple)"></i><i style="flex:10;background:var(--orange)"></i><i style="flex:4.5;background:var(--teal)"></i><i style="flex:2.4;background:var(--pink)"></i></div>
+      <div class="row"><span class="dot" style="background:var(--blue)"></span><span class="n">Cash savings<small style="color:var(--green)">✓ Emergency fund filled</small></span><span class="v">23’745</span></div>
+      <div class="row"><span class="dot" style="background:var(--purple)"></span><span class="n">Stocks · paid in<small>current value 29’853 (+3’573)</small></span><span class="v">26’280</span></div>
+      <div class="row"><span class="dot" style="background:var(--orange)"></span><span class="n">Property savings</span><span class="v">10’005</span></div>
+      <div class="row"><span class="dot" style="background:var(--teal)"></span><span class="n">Holiday budget</span><span class="tag">not counted</span><span class="v">4’500</span></div>
+      <div class="row"><span class="dot" style="background:var(--pink)"></span><span class="n">New car</span><span class="tag">not counted</span><span class="v">2’400</span></div>
+    </div>
+
+    <div class="card" data-go="ot">
+      <div class="ch"><span class="k" style="color:var(--green)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>On track by age 50?</span><span class="badge">Behind</span></div>
+      <div class="big">CHF 697’000</div><div style="font-size:14px;color:var(--ink2);margin-top:2px">at 50 · goal CHF 1M</div>
+      <div class="track"><i style="width:70%;background:color-mix(in srgb,var(--green) 35%,transparent)"></i><i style="width:6%;background:var(--green)"></i></div>
+      <div class="lbls"><span>Today 6%</span><span>At 50: 70%</span><span>Goal</span></div>
+      <div class="note"><b>+CHF 881/month</b> into stocks closes the gap · otherwise goal reached at <b>56</b></div>
+    </div>
+
+    <div class="card" data-go="sr">
+      <div class="ch"><span class="k" style="color:var(--orange)"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1010 10h-10z" opacity=".45"/><path d="M14 0v10h10A10 10 0 0014 0z" transform="translate(-1 1)"/></svg>Savings rate</span><span class="r">avg 29%</span></div>
+      <div class="split">
+        <svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--card2)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="var(--orange)" stroke-width="4" stroke-linecap="round" stroke-dasharray="28.3 94.2" transform="rotate(-90 18 18)"/><text x="18" y="21.5" text-anchor="middle" font-size="9" font-weight="700" fill="var(--ink)">30%</text></svg>
+        <div class="s"><b>This month</b><div>avg 29% since start</div></div>
+        <div class="e"><div>Avg per month</div><b>CHF 2’560</b><div>saved of 8’775</div></div>
+      </div>
+    </div>
+
+    <div class="linkrow" data-go="pp"><svg class="ic" style="width:22px;height:22px;color:var(--teal)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9H3z"/></svg><span>First property · up to <b>CHF 50’025</b></span></div>
+    <div class="linkrow" data-go="nw"><svg class="ic" style="width:22px;height:22px;color:var(--blue)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Show all months</span></div>
+  </div>
+</section>
+
+<!-- DETAIL -->
+<section class="page off" id="detail">
+  <div class="dtop"><span class="rb" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span><span class="t" id="dt">Net worth</span><span class="rb">+</span></div>
+  <div class="seg" id="seg"><div>6M</div><div class="on">Y</div><div>3Y</div><div>All</div></div>
+  <div class="cap" id="dcap">SAVED PER MONTH · AVERAGE</div>
+  <div class="dbig" id="dbig">CHF 2’560</div>
+  <div class="sub" id="dsub">Oct 2025 – Sep 2026</div>
+  <div class="chart" id="chart"></div>
+  <div class="sheetband">
+    <h2>Highlights <a href="#">Show All</a></h2>
+    <div class="hl"><div class="ch"><span class="k" style="color:var(--blue)" id="hlk">Net worth</span></div>
+      <p id="hlp">You saved more this September than your average month.</p>
+      <div class="cmp"><div style="color:var(--blue)">September<b style="color:var(--blue)">CHF 2’905</b></div><div>Average<b style="color:var(--ink2)" id="havg">CHF 2’560</b></div></div></div>
+    <div class="hl"><div class="ch"><span class="k" style="color:var(--purple)">Stocks</span></div>
+      <p>Your stocks grew CHF 3’573 above what you paid in.</p></div>
+  </div>
+</section>
+
+<nav class="tabs">
+  <div class="on"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>Home</div>
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>History</div>
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Goals</div>
+  <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</div>
+</nav>
+
+<script>
+const mon=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// demo: 36 months ending Sep 2026
+const data=[];let s=1234;const rnd=()=>{s=(s*9301+49297)%233280;return s/233280};
+for(let i=0;i<36;i++){const y=2023+Math.floor((9+i)/12),m=(9+i)%12;data.push({y,m,v:Math.round(1600+rnd()*2200+(i===35?300:0))});}
+data[35].v=2905;
+const DET={
+ nw:{t:"Net worth",cap:"SAVED PER MONTH · AVERAGE",col:"var(--blue)",k:"Net worth"},
+ ot:{t:"On track",cap:"PROJECTED AT 50 · MIDDLE CASE",col:"var(--green)",k:"On track",fixed:"CHF 697’000"},
+ sr:{t:"Savings rate",cap:"SAVINGS RATE · AVERAGE",col:"var(--orange)",k:"Savings rate",pct:true},
+ pp:{t:"First property",cap:"PROPERTY SAVINGS · PER MONTH",col:"var(--teal)",k:"Property"}
+};
+let cur="nw",span=12;
+const fmt=n=>"CHF "+Math.round(n).toLocaleString("de-CH").replace(/[’']/g,"’");
+function draw(){
+ const d=DET[cur],arr=data.slice(-span),W=360,H=240,max=Math.ceil(Math.max(...arr.map(a=>a.v))/1000)*1000,bw=W/arr.length;
+ const avg=arr.reduce((a,b)=>a+b.v,0)/arr.length;
+ document.getElementById("dt").textContent=d.t;document.getElementById("dcap").textContent=d.cap;document.getElementById("hlk").textContent=d.k;document.getElementById("hlk").style.color=d.col;
+ document.getElementById("dbig").innerHTML=d.pct?"29<small>%</small>":(d.fixed||fmt(avg));
+ const a=arr[0],z=arr[arr.length-1];document.getElementById("dsub").textContent=`${mon[a.m]} ${a.y} – ${mon[z.m]} ${z.y}`;
+ let g="";for(let i=0;i<=3;i++){const y=H-H*i/3;g+=`<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${W+6}" y="${y+4}" font-size="11" fill="var(--ink2)">${(max*i/3/1000).toFixed(1).replace(".0","")}k</text>`;}
+ arr.forEach((p,i)=>{const h=H*p.v/max,x=i*bw+bw*.18;g+=`<rect x="${x}" y="${H-h}" width="${bw*.64}" height="${h}" rx="${Math.min(3,bw*.2)}" fill="${d.col}"/>`;
+  if(arr.length<=12||p.m%3===0)g+=`<text x="${x+bw*.32}" y="${H+18}" font-size="11" text-anchor="middle" fill="var(--ink2)">${arr.length>12?mon[p.m]+" "+String(p.y).slice(2):mon[p.m][0]}</text>`;});
+ document.getElementById("havg").textContent=fmt(avg);const ay=H-H*avg/max;g+=`<line x1="0" x2="${W}" y1="${ay}" y2="${ay}" stroke="var(--ink2)" stroke-dasharray="4 4"/>`;
+ document.getElementById("chart").innerHTML=`<svg viewBox="0 0 ${W+30} ${H+24}" preserveAspectRatio="none">${g}</svg>`;
+}
+const home=document.getElementById("home"),det=document.getElementById("detail");
+document.querySelectorAll("[data-go]").forEach(c=>c.addEventListener("click",()=>{cur=c.dataset.go;draw();det.scrollTop=0;det.classList.remove("off");home.classList.add("under");}));
+document.getElementById("back").onclick=()=>{det.classList.add("off");home.classList.remove("under");};
+document.querySelectorAll("#seg div").forEach((b,i)=>b.onclick=()=>{document.querySelectorAll("#seg div").forEach(x=>x.classList.remove("on"));b.classList.add("on");span=[6,12,36,36][i];draw();});
+const q=new URLSearchParams(location.search);if(q.get("theme"))document.documentElement.dataset.theme=q.get("theme");
+if(q.get("open")){cur=q.get("open");draw();det.classList.remove("off");home.classList.add("under");det.style.transition=home.style.transition="none";}
+draw();
+</script>
+</body></html>
