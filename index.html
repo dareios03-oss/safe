@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Safe</title>
 <meta name="description" content="Safe: a private savings and investing tracker. Your data stays on your device.">
 <meta name="theme-color" content="#E8ECF7" media="(prefers-color-scheme: light)">
@@ -21,6 +21,11 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon-v2.png">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="hs.css">
+<script>
+/* no zooming: block pinch (iOS gesture events and two-finger moves) and double-tap zoom */
+(function(){var no=function(e){e.preventDefault();};["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,no,{passive:false});});
+document.addEventListener("touchmove",function(e){if(e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault();},{passive:false});})();
+</script>
 <script>
 /* design preview switch: Health style is the default; ?style=glass brings back the old glass look, ?style=health returns (remembered on this device) */
 (function(){try{var q=new URLSearchParams(location.search).get("style");if(q)localStorage.setItem("safe-style",q);if(localStorage.getItem("safe-style")!=="glass"){document.documentElement.classList.add("hs");window.__tc&&window.__tc();}}catch(e){}})();
