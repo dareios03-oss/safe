@@ -1,0 +1,37 @@
+/* Health style (preview): plain background, colour glow behind the page title, solid cards.
+   Active only when <html> has class "hs" (turned on with ?style=health, off with ?style=glass). Nothing in the content changes. */
+html.hs{
+  --page:#F2F2F7; --bg:#F2F2F7; --card:#FFFFFF; --card2:#ECECF1;
+  --line:rgba(60,60,67,.12); --track:rgba(60,60,67,.12);
+  --sheetS:#F2F2F7; --field:#FFFFFF; --fieldb:#FFFFFF;
+  --glowA:#2F6BFF; --glowB:#8A55F7; --glowop:.5;
+}
+@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]){
+  --page:#000; --bg:#000; --card:#1C1C1E; --card2:#2C2C2E;
+  --line:rgba(255,255,255,.1); --track:rgba(255,255,255,.14);
+  --sheetS:#121214; --field:#1C1C1E; --fieldb:#2C2C2E; --glowop:.72;
+}}
+html.hs[data-theme="dark"]{
+  --page:#000; --bg:#000; --card:#1C1C1E; --card2:#2C2C2E;
+  --line:rgba(255,255,255,.1); --track:rgba(255,255,255,.14);
+  --sheetS:#121214; --field:#1C1C1E; --fieldb:#2C2C2E; --glowop:.72;
+}
+/* no wallpaper */
+html.hs .orb{display:none}
+html.hs .wall{background:var(--bg)}
+/* glow at the top of each page that scrolls away with the title */
+html.hs .screen{isolation:isolate}
+html.hs .screen::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;z-index:-1;pointer-events:none;opacity:var(--glowop);
+  background:radial-gradient(110% 85% at 90% 0%,var(--glowB) 0%,transparent 62%),radial-gradient(120% 95% at 0% 0%,var(--glowA) 0%,transparent 66%);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 30%,transparent 100%)}
+html.hs .topfade{display:none}
+/* solid cards instead of glass, inside pages and sheets */
+html.hs .screen .glass:not(.backbtn):not(.xbtn),html.hs .sheet .glass:not(.xbtn),html.hs .full .glass:not(.backbtn):not(.xbtn){
+  background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none;border:0;box-shadow:none}
+html.hs .card{border-radius:26px}
+html.hs .list{border-radius:26px}
+/* round buttons stay glass, like Health's back and + buttons */
+html.hs .backbtn,html.hs .xbtn{background:color-mix(in srgb,var(--card) 80%,transparent);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.12)}
+/* sheets: grouped background, white cards on it */
+html.hs .sheet{background:var(--sheetS);border:1px solid var(--line)}
+html.hs .full{background:var(--bg)}

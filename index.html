@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#05060F" media="(prefers-color-scheme: dark)">
 <script>
 /* keep the iOS status strip in the same colour as the page, also when light/dark mode switches */
-(function(){var mq=matchMedia("(prefers-color-scheme: dark)");function s(){var m=document.getElementById("tc");if(!m){m=document.createElement("meta");m.name="theme-color";m.id="tc";document.head.appendChild(m);}m.content=mq.matches?"#05060F":"#E8ECF7";}s();mq.addEventListener?mq.addEventListener("change",s):mq.addListener(s);})();
+(function(){var mq=matchMedia("(prefers-color-scheme: dark)");function s(){var m=document.getElementById("tc");if(!m){m=document.createElement("meta");m.name="theme-color";m.id="tc";document.head.appendChild(m);}var h=document.documentElement.classList.contains("hs");m.content=mq.matches?(h?"#000000":"#05060F"):(h?"#F2F2F7":"#E8ECF7");}window.__tc=s;s();mq.addEventListener?mq.addEventListener("change",s):mq.addListener(s);})();
 </script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -20,6 +20,11 @@
 <link rel="icon" href="icons/icon-192-v2.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon-v2.png">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="hs.css">
+<script>
+/* design preview switch: ?style=health turns the Health style on, ?style=glass turns it off (remembered on this device) */
+(function(){try{var q=new URLSearchParams(location.search).get("style");if(q)localStorage.setItem("safe-style",q);if(localStorage.getItem("safe-style")==="health"){document.documentElement.classList.add("hs");window.__tc&&window.__tc();}}catch(e){}})();
+</script>
 </head>
 <body>
 <div class="frame" id="frame">
