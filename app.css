@@ -306,3 +306,18 @@ body{font-family:var(--font);font-size:.9412rem}
 /* v1.11.2: no zoom (double-tap zoom off; pinch is blocked in index.html) */
 html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 button,a,input,select,textarea,[data-act]{touch-action:manipulation}
+
+/* v1.12.2: with the app under the status bar, iOS sizes the page one status bar too short at the bottom.
+   Make the frame as tall as the whole screen. */
+@media (max-width:500px),(display-mode: standalone){
+  html,body{min-height:100vh;min-height:100lvh}
+  .frame{bottom:auto;height:100vh;height:max(100%,100vh,100lvh)}
+}
+/* sharp title in the bar: no fading/moving of the whole bar (iOS blurs text inside a fading layer with a frosted background) */
+.navbar{opacity:1;visibility:hidden;transition:none}
+.navbar.on{visibility:visible}
+.navbar::before,.navbar::after{opacity:0;transition:opacity .22s ease}
+.navbar.on::before,.navbar.on::after{opacity:1}
+.navbar::before{z-index:0}
+.nav-t{z-index:1;opacity:0;transform:none!important;transition:opacity .22s ease;-webkit-font-smoothing:antialiased}
+.navbar.on .nav-t{opacity:1}
