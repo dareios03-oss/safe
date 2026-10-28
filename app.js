@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.12.2";
+const VERSION="1.12.3";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0,oneoffs:[],assets:[]};}
@@ -613,7 +613,9 @@ function openInfo(k,a,replace){
     body=`<p class="explain">Pick the first month you want in your history. Safe asks for your balances just before that month, then for each year either month by month or as one yearly total. Yearly totals show as a monthly average in History.</p>`;
   }else if(k==="about"){
     title="About Safe";
-    body=`${kv([["Version",VERSION],["Months stored",String(S.months.length)],["Last backup",backupLabel()]])}<p class="explain">Safe keeps everything on this iPhone and works offline. Back up regularly: if the app is deleted, the data is gone unless you have a backup file.</p>`;
+    const pr=document.createElement("div");pr.style.cssText="position:fixed;top:0;left:0;width:1px;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden";document.body.appendChild(pr);const cs=getComputedStyle(pr),fr=document.getElementById("frame").getBoundingClientRect(),vv=window.visualViewport;pr.remove();
+    body=`${kv([["Version",VERSION],["Months stored",String(S.months.length)],["Last backup",backupLabel()]])}
+    <div class="section" style="padding-left:4px">Screen info (for fixing layout)</div>${kv([["Screen",screen.width+" × "+screen.height],["Window",innerWidth+" × "+innerHeight],["Visual viewport",vv?Math.round(vv.width)+" × "+Math.round(vv.height)+" @"+Math.round(vv.offsetTop):"–"],["App frame",Math.round(fr.top)+" → "+Math.round(fr.bottom)],["Safe area top / bottom",cs.paddingTop+" / "+cs.paddingBottom],["Home Screen app",isStandalone()?"yes":"no"],["Status bar style",(document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')||{}).content||"–"],["Page height",document.documentElement.clientHeight+" / body "+document.body.clientHeight]])}<p class="explain">Safe keeps everything on this iPhone and works offline. Back up regularly: if the app is deleted, the data is gone unless you have a backup file.</p>`;
   }
   if(PAGEK.has(k)){openPage(k,a,title,body,action,replace);if(k==="prop")wireProp();if(k==="ontrack")wireOnTrack();return;}
   const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t">
