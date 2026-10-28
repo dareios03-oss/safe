@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.11.0";
+const VERSION="1.11.1";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0,oneoffs:[],assets:[]};}
@@ -117,20 +117,20 @@ function propCalc(b){
   return {e,pp,reserve,usable,byEq,byInc,inc,incAuto,manualInc:pp.income>0,rate,max,limit,need:max*e,cost:max*rate/12};
 }
 function propRow(b){const p=propCalc(b);
-  return `<button class="card glass" data-act="info" data-k="prop" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left" aria-label="First property details"><span style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span class="muted" style="font-size:13px">First property · can buy up to</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(p.max)}</span></span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`;}
+  return `<button class="card glass" data-act="info" data-k="prop" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left" aria-label="First property details"><span style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span class="muted" style="font-size:0.7647rem">First property · can buy up to</span><span style="font-size:1.1765rem;font-weight:700;letter-spacing:-.01em">${chf(p.max)}</span></span><span style="color:var(--accent);font-weight:600;font-size:1.1765rem" aria-hidden="true">›</span></button>`;}
 function propCard(b){
   const p=propCalc(b),top=Math.max(p.byEq,p.byInc,1);
-  const bar=(label,v,on)=>`<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between;font-size:13px"><span class="muted">${label}</span><span class="num" style="${on?"color:var(--ink)":"color:var(--muted)"}">${p.inc||label.indexOf("income")<0?chf(v):"no income yet"}</span></div><span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${Math.min(v/top*100,100)}%;background:${on?"var(--prop)":"var(--soft)"};opacity:${on?1:.45}"></span></span></div>`;
+  const bar=(label,v,on)=>`<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between;font-size:0.7647rem"><span class="muted">${label}</span><span class="num" style="${on?"color:var(--ink)":"color:var(--muted)"}">${p.inc||label.indexOf("income")<0?chf(v):"no income yet"}</span></div><span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${Math.min(v/top*100,100)}%;background:${on?"var(--prop)":"var(--soft)"};opacity:${on?1:.45}"></span></span></div>`;
   return `<section class="card glass" data-act="info" data-k="prop" role="button" tabindex="0" aria-label="First property details">
-    <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;font-size:17px;font-weight:600">First property</span><span class="pill warn" style="align-self:center">Limited by ${p.limit}</span></div>
-    <div style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:13px">Can buy up to</span><span class="big" style="font-size:34px">${chf(p.max)}</span></div>
+    <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;font-size:1rem;font-weight:600">First property</span><span class="pill warn" style="align-self:center">Limited by ${p.limit}</span></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:0.7647rem">Can buy up to</span><span class="big" style="font-size:2rem">${chf(p.max)}</span></div>
     ${bar("With your equity",p.byEq,p.limit==="equity")}${bar("With your income",p.byInc,p.limit==="income")}
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:10px">
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Property savings</span><span class="num" style="font-size:15px">${chf(b.property)}</span></span>
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Safety reserve</span><span class="num" style="font-size:15px">${p.reserve?"−"+fmt(p.reserve):"0"}</span></span>
-      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:12px">Equity needed (${S.equity}%)</span><span class="num" style="font-size:15px">${chf(p.need)}</span></span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:0.7059rem">Property savings</span><span class="num" style="font-size:0.8824rem">${chf(b.property)}</span></span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:0.7059rem">Safety reserve</span><span class="num" style="font-size:0.8824rem">${p.reserve?"−"+fmt(p.reserve):"0"}</span></span>
+      <span style="display:flex;flex-direction:column;gap:2px"><span class="muted" style="font-size:0.7059rem">Equity needed (${S.equity}%)</span><span class="num" style="font-size:0.8824rem">${chf(p.need)}</span></span>
     </div>
-    <span class="muted" style="font-size:13px">At this price: about ${chf(p.cost)}/month housing costs${p.inc?` · max. ${fmtPct(p.pp.share)} of your income`:""} · tap to adjust</span>
+    <span class="muted" style="font-size:0.7647rem">At this price: about ${chf(p.cost)}/month housing costs${p.inc?` · max. ${fmtPct(p.pp.share)} of your income`:""} · tap to adjust</span>
   </section>`;
 }
 
@@ -224,29 +224,29 @@ function onTrackChart(o){
 }
 function goalHead(){const b=bal(L()),pct=b.fi/S.fi*100;
   return `<div data-act="info" data-k="fi" role="button" tabindex="0" aria-label="Financial goal details" style="display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:13px">Financial goal · today</span><span class="muted" style="font-size:13px">Goal ${chf(S.fi)}</span></div>
-    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:30px;font-weight:700;letter-spacing:-.02em">${pct.toFixed(1)}%</span><span class="muted" style="font-size:14px">${chf(b.fi)} · excl. holiday${b.potOut?" &amp; spending goals":""}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:0.7647rem">Financial goal · today</span><span class="muted" style="font-size:0.7647rem">Goal ${chf(S.fi)}</span></div>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:1.7647rem;font-weight:700;letter-spacing:-.02em">${pct.toFixed(1)}%</span><span class="muted" style="font-size:0.8235rem">${chf(b.fi)} · excl. holiday${b.potOut?" &amp; spending goals":""}</span></div>
     <span class="track" style="flex:none;height:8px"><span style="width:${Math.min(pct,100)}%;background:linear-gradient(90deg,#5C9BFF,#8E4FD8)"></span></span>
   </div>`;}
 function onTrackCard(){
   const o=onTrack();
-  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check">${goalHead()}<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Enter your birth year and target age to see if you reach your financial goal in time, with best, middle and worst case.</span></section>`;
+  if(!o.by)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check">${goalHead()}<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:1rem;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:0.8824rem;line-height:1.4">Enter your birth year and target age to see if you reach your financial goal in time, with best, middle and worst case.</span></section>`;
   const st={on:["good","On track"],ahead:["good","Ahead"],behind:["warn","Behind"]}[o.status];
   const m=o.cases.mid.end;
   return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details">${goalHead()}
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
-    <span class="muted" style="font-size:14px;line-height:1.4">${o.status==="behind"?`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}. About <b style="color:var(--ink)">${chf(o.extra)} more per month</b> into stocks closes the gap.`:`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}${o.reachK!=null?`, reaching ${kfmt(S.fi)} around ${Math.floor(o.reachK/12)}${o.by?" (age "+(Math.floor(o.reachK/12)-o.by)+")":""}`:""}.`}</span>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:1rem;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
+    <span class="muted" style="font-size:0.8235rem;line-height:1.4">${o.status==="behind"?`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}. About <b style="color:var(--ink)">${chf(o.extra)} more per month</b> into stocks closes the gap.`:`At ${fmtPct(o.ot.mid)} you'd have ${chf(m)} at ${S.fiAge}${o.reachK!=null?`, reaching ${kfmt(S.fi)} around ${Math.floor(o.reachK/12)}${o.by?" (age "+(Math.floor(o.reachK/12)-o.by)+")":""}`:""}.`}</span>
     ${onTrackChart(o)}
-    <div style="display:flex;gap:16px;font-size:12px">
+    <div style="display:flex;gap:16px;font-size:0.7059rem">
       <span style="display:flex;align-items:center;gap:5px"><i style="width:12px;height:12px;border-radius:3px;background:var(--soft);opacity:.45"></i><span class="muted">Paid in by ${S.fiAge}: ${kfmt(o.cases.mid.paidEnd)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:12px;height:12px;border-radius:3px;background:var(--accent);opacity:.45"></i><span class="muted">Growth (${fmtPct(o.ot.mid)}): ${kfmt(o.cases.mid.end-o.cases.mid.paidEnd)}</span></span>
     </div>
-    <div style="display:flex;justify-content:space-between;gap:6px;font-size:12px">
+    <div style="display:flex;justify-content:space-between;gap:6px;font-size:0.7059rem">
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--goodline)"></i><span class="muted">Best ${fmtPct(o.ot.best)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2.5px solid var(--accent)"></i><span class="muted">Middle ${fmtPct(o.ot.mid)}</span></span>
       <span style="display:flex;align-items:center;gap:5px"><i style="width:14px;height:0;border-top:2px dashed var(--prop)"></i><span class="muted">Worst ${fmtPct(o.ot.worst)}</span></span>
     </div>
-    <span class="muted" style="font-size:12px;line-height:1.4">Based on your average of ${chf(o.mFi)}/month toward your goal (${chf(o.mStocks)} into stocks) from ${o.ba.real?(o.ba.real===1?"your last check-in":"your last "+o.ba.real+" check-ins"):""}${o.ba.real&&o.ba.est?" plus ":""}${o.ba.est?"your estimate since "+kName(S.since):""}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
+    <span class="muted" style="font-size:0.7059rem;line-height:1.4">Based on your average of ${chf(o.mFi)}/month toward your goal (${chf(o.mStocks)} into stocks) from ${o.ba.real?(o.ba.real===1?"your last check-in":"your last "+o.ba.real+" check-ins"):""}${o.ba.real&&o.ba.est?" plus ":""}${o.ba.est?"your estimate since "+kName(S.since):""}; updates with every check-in. Only invested money earns the return. Rings on the goal line show the age each case reaches it.</span>
   </section>`;
 }
 
@@ -257,7 +257,7 @@ function home(){
   const l6=S.months.slice(-6), avg=l6.length?l6.reduce((a,x)=>a+(x.income?x.saved/x.income:0),0)/l6.length*100:0;
   const circ=2*Math.PI*25, dash=Math.min(rate,100)/100*circ;
   const ep=S.emergency>0?Math.min(Math.max(b.cash,0)/S.emergency,1):0;
-  const cashSub=S.emergency>0?`<span style="display:flex;flex-direction:column;gap:4px;margin-top:3px"><span class="muted" style="font-size:12px">${ep>=1?'<b style="color:var(--good)">✓ Emergency fund filled</b>':`Emergency fund ${Math.round(ep*100)}% · ${chf(S.emergency-b.cash)} to go`}</span><span style="height:4px;border-radius:2px;background:var(--track);overflow:hidden;max-width:180px"><span style="display:block;height:4px;width:${ep*100}%;background:${ep>=1?"var(--goodline)":"var(--cash)"}"></span></span></span>`:"";
+  const cashSub=S.emergency>0?`<span style="display:flex;flex-direction:column;gap:4px;margin-top:3px"><span class="muted" style="font-size:0.7059rem">${ep>=1?'<b style="color:var(--good)">✓ Emergency fund filled</b>':`Emergency fund ${Math.round(ep*100)}% · ${chf(S.emergency-b.cash)} to go`}</span><span style="height:4px;border-radius:2px;background:var(--track);overflow:hidden;max-width:180px"><span style="display:block;height:4px;width:${ep*100}%;background:${ep>=1?"var(--goodline)":"var(--cash)"}"></span></span></span>`:"";
   const cat=[{n:"Cash savings",v:b.cash,c:"var(--cash)",k:"cat",a:"cash",subHtml:cashSub},{n:"Stocks · paid in",v:b.value,show:b.paid,c:"var(--stocks)",sub:`current value ${fmt(b.value)} (${b.gain>=0?"+":"−"}${fmt(Math.abs(b.gain))}) · volatile`,k:"cat",a:"stocks"},{n:"Property savings",v:b.property,c:"var(--prop)",k:"cat",a:"property"},{n:"Holiday budget",v:b.holiday,c:"var(--hol)",nofi:true,k:"cat",a:"holiday"}]
     .concat(S.pots.map(pt=>({n:esc(pt.name),v:b.pots[pt.id],c:pt.color,nofi:!pt.fi,k:"pot",a:pt.id})))
     .concat((S.assets||[]).map(a=>({n:esc(a.name),v:(a.value||0)-(a.debt||0),c:"#8A6A4F",nofi:!a.fi,k:"asset",a:a.id,sub:a.debt?`value ${fmt(a.value)} · mortgage ${fmt(a.debt)}`:"owned property"})));
@@ -265,25 +265,25 @@ function home(){
   return `
   <div class="head"><div><div class="eyebrow">${has?`Latest check-in · ${MONTHS[r.m-1]} ${r.y}`:"No check-ins yet"}</div><h1>Overview</h1></div>
   <button class="btn round" data-act="addmenu" aria-label="Add">${IC.plus}</button></div><!--tip-->
-  ${d&&(isBehind()||new Date(S.today.y,S.today.m-1,S.today.d)>=ciDate(d.y,d.m))?`<button class="card glass" data-act="sheet" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill ${isBehind()?"warn":"good"}" style="align-self:center">${isBehind()?"Late":"Due"}</span><span style="flex:1;font-size:15px;font-weight:600">${isBehind()?MONTHS[d.m-1]+" check-in is still open":"Time for your "+MONTHS[d.m-1]+" check-in"}</span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`:""}
-  ${backupOverdue()?`<button class="card glass" data-act="backup" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Backup</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:600">${S.lastBackup?"Last backup: "+backupLabel():"No backup yet"}</span><span class="muted" style="font-size:13px">Download one to your Files so your data is safe</span></span><span style="color:var(--accent);font-weight:600;font-size:15px">Back up</span></button>`:""}
+  ${d&&(isBehind()||new Date(S.today.y,S.today.m-1,S.today.d)>=ciDate(d.y,d.m))?`<button class="card glass" data-act="sheet" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill ${isBehind()?"warn":"good"}" style="align-self:center">${isBehind()?"Late":"Due"}</span><span style="flex:1;font-size:0.8824rem;font-weight:600">${isBehind()?MONTHS[d.m-1]+" check-in is still open":"Time for your "+MONTHS[d.m-1]+" check-in"}</span><span style="color:var(--accent);font-weight:600;font-size:1.1765rem" aria-hidden="true">›</span></button>`:""}
+  ${backupOverdue()?`<button class="card glass" data-act="backup" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left"><span class="pill warn" style="align-self:center">Backup</span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:0.8824rem;font-weight:600">${S.lastBackup?"Last backup: "+backupLabel():"No backup yet"}</span><span class="muted" style="font-size:0.7647rem">Download one to your Files so your data is safe</span></span><span style="color:var(--accent);font-weight:600;font-size:0.8824rem">Back up</span></button>`:""}
   <section class="card glass" data-act="info" data-k="nw" role="button" tabindex="0" aria-label="Net worth details">
-    <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:15px">Net worth</span>
+    <div style="display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:0.8824rem">Net worth</span>
     <span class="big">${chf(b.nw)}</span>
     <span class="pill ${delta>=0?"good":"warn"}" style="margin-top:4px">${delta>=0?"▲":"▼"} ${chf(Math.abs(delta))} this month</span></div>
     <div class="split" aria-hidden="true">${cat.filter(c=>c.v>0).map(c=>`<span style="flex:${c.v};background:${c.c}"></span>`).join("")}</div>
     <div style="display:flex;flex-direction:column;gap:12px">${cat.map(c=>`
       <div class="catrow" data-act="info" data-k="${c.k}" data-a="${c.a}" role="button" tabindex="0" aria-label="${c.n} details"><span class="dot" style="background:${c.c};box-shadow:0 0 10px ${c.c}"></span>
-      <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:17px">${c.n}</span>${c.sub?`<span class="muted" style="font-size:12px">${c.sub}</span>`:""}${c.subHtml||""}</span>
-      ${c.nofi?`<span class="pill" style="color:var(--muted);background:var(--field);border-color:var(--fieldb);align-self:center;font-size:11px">not counted</span>`:""}
-      <span class="num" style="font-size:17px">${fmt(c.show!=null?c.show:c.v)}</span></div>`).join("")}</div>
+      <span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:1rem">${c.n}</span>${c.sub?`<span class="muted" style="font-size:0.7059rem">${c.sub}</span>`:""}${c.subHtml||""}</span>
+      ${c.nofi?`<span class="pill" style="color:var(--muted);background:var(--field);border-color:var(--fieldb);align-self:center;font-size:0.6471rem">not counted</span>`:""}
+      <span class="num" style="font-size:1rem">${fmt(c.show!=null?c.show:c.v)}</span></div>`).join("")}</div>
   </section>
   ${homeTrack(b)}
   <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px">
     <button class="card glass" data-act="info" data-k="rate" style="text-align:left;flex-direction:row;align-items:center;gap:10px;padding:16px">
       <svg width="58" height="58" viewBox="0 0 60 60" aria-hidden="true" style="flex:none"><circle cx="30" cy="30" r="25" fill="none" stroke="var(--track)" stroke-width="7"/><circle cx="30" cy="30" r="25" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${dash} ${circ}" transform="rotate(-90 30 30)"/><text x="30" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${Math.round(rate)}%</text></svg>
-      <span style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:600">Savings rate</span><span class="muted" style="font-size:13px">avg ${Math.round(avg)}%</span></span>
-      ${l6.length?`<span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:none;padding-left:12px;border-left:1px solid var(--line)"><span class="muted" style="font-size:12px">Avg per month</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(l6.reduce((s,x)=>s+x.saved,0)/l6.length)}</span><span class="muted" style="font-size:12px">saved of ${fmt(l6.reduce((s,x)=>s+x.income,0)/l6.length)}</span></span>`:""}
+      <span style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:0.8824rem;font-weight:600">Savings rate</span><span class="muted" style="font-size:0.7647rem">avg ${Math.round(avg)}%</span></span>
+      ${l6.length?`<span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:none;padding-left:12px;border-left:1px solid var(--line)"><span class="muted" style="font-size:0.7059rem">Avg per month</span><span style="font-size:1.1765rem;font-weight:700;letter-spacing:-.01em">${chf(l6.reduce((s,x)=>s+x.saved,0)/l6.length)}</span><span class="muted" style="font-size:0.7059rem">saved of ${fmt(l6.reduce((s,x)=>s+x.income,0)/l6.length)}</span></span>`:""}
     </button>
   </div>
   ${propRow(b)}`;
@@ -291,7 +291,7 @@ function home(){
 
 /* Home: compact "On track" card (same engine as Goals) */
 function homeTrack(b){
-  if(!S.birthYear)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check" style="gap:6px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:15px;line-height:1.4">Add your birth year and goal age to see if you reach your financial goal in time.</span></section>`;
+  if(!S.birthYear)return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="Set up on-track check" style="gap:6px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:1rem;font-weight:600">On track?</span><span class="pill" style="color:var(--accent);background:var(--field);border-color:var(--fieldb)">Set up</span></div><span class="muted" style="font-size:0.8824rem;line-height:1.4">Add your birth year and goal age to see if you reach your financial goal in time.</span></section>`;
   const o=onTrack(),end=o.cases.mid.end,goal=S.fi,good=o.status!=="behind",col=good?"var(--goodline)":"var(--accent)";
   const total=Math.max(goal,end),now=Math.min(b.fi/total*100,100),at=Math.min(end/total*100,100),tick=goal/total*100;
   const pct=v=>Math.round(v/goal*100)+"%";
@@ -300,47 +300,47 @@ function homeTrack(b){
   const foot=good?(early>=1?`You'd reach your goal <b>${early} year${early===1?"":"s"} early</b> at ${fmtPct(o.ot.mid)}.`:`Right on schedule at ${fmtPct(o.ot.mid)}.`)
     :`<b>+${chf(o.extra)}/month</b> into stocks closes the gap${reachAge!=null?` · otherwise goal reached at <b>${reachAge}</b>`:""}`;
   return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details" style="gap:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:30px;font-weight:700;letter-spacing:-.02em">${chf(Math.round(end/1000)*1000)}</span><span class="muted" style="font-size:13px">at ${S.fiAge} · goal ${kfmt(goal)}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:1rem;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:1.7647rem;font-weight:700;letter-spacing:-.02em">${chf(Math.round(end/1000)*1000)}</span><span class="muted" style="font-size:0.7647rem">at ${S.fiAge} · goal ${kfmt(goal)}</span></div>
     <div style="position:relative;height:10px;border-radius:5px;background:var(--track)" aria-hidden="true">
       <span style="position:absolute;left:0;top:0;bottom:0;width:${at}%;border-radius:5px;background:${col};opacity:.32"></span>
       <span style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(now,1.5)}%;border-radius:5px;background:${col}"></span>
       <span style="position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:var(--ink);left:calc(${tick}% - 1px)"></span></div>
-    <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px" class="muted"><span>Today ${pct(b.fi)}</span>${good?`<span>${reachAge!=null?"Goal reached at "+reachAge:""}</span>`:`<span>At ${S.fiAge}: ${pct(end)}</span><span>Goal</span>`}</div>
-    <div style="font-size:14px;line-height:1.4;border-top:1px solid var(--line);padding-top:10px">${foot}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;font-size:0.7059rem" class="muted"><span>Today ${pct(b.fi)}</span>${good?`<span>${reachAge!=null?"Goal reached at "+reachAge:""}</span>`:`<span>At ${S.fiAge}: ${pct(end)}</span><span>Goal</span>`}</div>
+    <div style="font-size:0.8235rem;line-height:1.4;border-top:1px solid var(--line);padding-top:10px">${foot}</div>
   </section>`;
 }
 function checkin(){
   const r=cur(),d=dueMonth();
   if(!d&&!r){const k=S.createdYm!=null?S.createdYm:ym(S.today.y,S.today.m),fy=Math.floor(k/12),fm=k%12+1;
     return `<div><div class="eyebrow">Monthly check-in</div><h1>${MONTHS[fm-1]} ${fy}</h1></div>
-    <section class="card glass"><span style="font-size:17px;line-height:1.4">Your first check-in is for ${MONTHS[fm-1]}. Safe reminds you on your check-in day.</span>
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Due</span><span style="font-size:17px;font-weight:600">${ciLabel(fy,fm)}</span></div></section>`;}
+    <section class="card glass"><span style="font-size:1rem;line-height:1.4">Your first check-in is for ${MONTHS[fm-1]}. Safe reminds you on your check-in day.</span>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:0.8824rem">Due</span><span style="font-size:1rem;font-weight:600">${ciLabel(fy,fm)}</span></div></section>`;}
   if(!d){
     const reached=r.goal&&r.saved>=r.goal;
     return `<div><div class="eyebrow">Monthly check-in</div><h1>${MONTHS[r.m-1]} ${r.y}</h1></div>
     <section class="card glass" data-act="info" data-k="goalm" role="button" tabindex="0" aria-label="Monthly goal details"><div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">${MONTHS[r.m-1]} is logged</span><span class="pill ${reached?"good":"warn"}">${fmt(r.saved)} of ${fmt(r.goal||0)} goal</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Goal for ${MONTHS[r.m%12]}</span><span style="font-size:22px;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Goal for ${MONTHS[r.m%12]}</span><span style="font-size:1.2941rem;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
     <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted">Next check-in</span><span class="num">${ciShort(Math.floor((ym(r.y,r.m)+1)/12),(ym(r.y,r.m)+1)%12+1)}</span></div></section>
     <button class="btn" data-act="edit" data-i="${L()}" style="margin-top:60px">Edit ${MONTHS[r.m-1]} check-in</button>`;
   }
   const m=d.m,dn=MONTHS[m-1];
-  const lastRow=r?`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px"><span class="muted" style="font-size:15px">Last check-in (${MONTHS[r.m-1]})</span><span class="pill ${r.goal&&r.saved>=r.goal?"good":"warn"}" style="align-self:center">${r.goal?`${fmt(r.saved)} of ${fmt(r.goal)} goal`:`${fmt(r.saved)} saved`}</span></div>`
-    :`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px"><span class="muted" style="font-size:15px">Last check-in</span><span class="muted" style="font-size:15px">none yet</span></div>`;
+  const lastRow=r?`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px"><span class="muted" style="font-size:0.8824rem">Last check-in (${MONTHS[r.m-1]})</span><span class="pill ${r.goal&&r.saved>=r.goal?"good":"warn"}" style="align-self:center">${r.goal?`${fmt(r.saved)} of ${fmt(r.goal)} goal`:`${fmt(r.saved)} saved`}</span></div>`
+    :`<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:12px"><span class="muted" style="font-size:0.8824rem">Last check-in</span><span class="muted" style="font-size:0.8824rem">none yet</span></div>`;
   if(isBehind()){
     return `<div><div class="eyebrow">Monthly check-in · late</div><h1>${dn} ${d.y}</h1></div>
     <section class="card glass" data-act="info" data-k="late" role="button" tabindex="0" aria-label="Why ${dn} comes first">
       <span class="pill warn">Not logged yet</span>
-      <span style="font-size:17px;line-height:1.4">You missed the ${dn} check-in. Log it now with your numbers from the end of ${dn}, then ${MONTHS[refK()%12]} is next.</span>
-      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Goal for ${dn}</span><span style="font-size:22px;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
+      <span style="font-size:1rem;line-height:1.4">You missed the ${dn} check-in. Log it now with your numbers from the end of ${dn}, then ${MONTHS[refK()%12]} is next.</span>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:0.8824rem">Goal for ${dn}</span><span style="font-size:1.2941rem;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
       ${lastRow}
     </section>
     <button class="btn" data-act="sheet" style="margin-top:80px">${IC.plus}<span>Check in ${dn}</span></button>`;
   }
   return `<div><div class="eyebrow">Monthly check-in</div><h1>${dn} ${d.y}</h1></div>
   <section class="card glass" data-act="info" data-k="goalm" role="button" tabindex="0" aria-label="Monthly goal details">
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Goal for ${dn}</span><span style="font-size:22px;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:15px">Due</span><span style="font-size:17px;font-weight:600">${ciLabel(d.y,m)}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:0.8824rem">Goal for ${dn}</span><span style="font-size:1.2941rem;font-weight:700">${S.nextGoal?chf(S.nextGoal):"not set"}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="muted" style="font-size:0.8824rem">Due</span><span style="font-size:1rem;font-weight:600">${ciLabel(d.y,m)}</span></div>
     ${lastRow}
   </section>
   <button class="btn" data-act="sheet" style="margin-top:80px">${IC.plus}<span>Check in</span></button>`;
@@ -365,9 +365,9 @@ function splitOf(idx){const s={stocks:0,property:0,holiday:0,cash:0,saved:0,gain
 function history(){
   const mode=S.hmode,ps=periods(mode);
   if(!ps.length)return `<h1>History</h1>
-  <section class="card glass"><span class="muted" style="font-size:15px">Saved so far</span><span class="big" style="font-size:40px">${CUR()} 0</span>
-  <span class="muted" style="font-size:15px;line-height:1.4">No months yet. Your check-ins and past months show up here.</span></section>
-  <div class="list glass"><button data-act="setup" style="border:0;background:transparent;text-align:left;min-height:48px;padding:0 16px;font-size:17px;font-weight:600;color:var(--accent)">+ Add or edit historical data</button></div>`;
+  <section class="card glass"><span class="muted" style="font-size:0.8824rem">Saved so far</span><span class="big" style="font-size:2.3529rem">${CUR()} 0</span>
+  <span class="muted" style="font-size:0.8824rem;line-height:1.4">No months yet. Your check-ins and past months show up here.</span></section>
+  <div class="list glass"><button data-act="setup" style="border:0;background:transparent;text-align:left;min-height:48px;padding:0 16px;font-size:1rem;font-weight:600;color:var(--accent)">+ Add or edit historical data</button></div>`;
   let pi=ps.findIndex(p=>p.k===S.hkey);if(pi<0){pi=ps.length-1;S.hkey=ps[pi].k;}
   const p=ps[pi],recs=p.idx.map(i=>S.months[i]);
   const saved=recs.reduce((a,r)=>a+r.saved,0),inc=recs.reduce((a,r)=>a+r.income,0);
@@ -392,22 +392,22 @@ function history(){
   let listHtml=`<div class="section">${listTitle}</div>
     <div class="list glass">${p.idx.slice().reverse().map(i=>{const r=S.months[i];const ok=r.goal&&r.saved>=r.goal;const w=r.goal?Math.min(r.saved/r.goal*100,100):0;
       return `<button data-act="edit" data-i="${i}" style="border:0;background:transparent;text-align:left;display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-bottom:1px solid var(--line);color:var(--ink)">
-      <span style="display:flex;align-items:baseline;gap:8px;font-size:17px;width:100%"><span style="flex:1">${MONTHS[r.m-1]} ${r.y}${r.est?' <span class="muted" style="font-size:12px">avg</span>':""}</span><span class="num">${fmt(r.saved)}</span><span style="font-size:13px;${ok?"color:var(--good);font-weight:600":r.goal?"color:var(--warn);font-weight:600":"color:var(--muted)"}">${r.goal?"/ "+fmt(r.goal)+(ok?" ✓":""):"no goal"}</span><span style="color:var(--soft)">›</span></span>
+      <span style="display:flex;align-items:baseline;gap:8px;font-size:1rem;width:100%"><span style="flex:1">${MONTHS[r.m-1]} ${r.y}${r.est?' <span class="muted" style="font-size:0.7059rem">avg</span>':""}</span><span class="num">${fmt(r.saved)}</span><span style="font-size:0.7647rem;${ok?"color:var(--good);font-weight:600":r.goal?"color:var(--warn);font-weight:600":"color:var(--muted)"}">${r.goal?"/ "+fmt(r.goal)+(ok?" ✓":""):"no goal"}</span><span style="color:var(--soft)">›</span></span>
       ${r.goal?`<span style="height:5px;border-radius:3px;background:var(--track);overflow:hidden;width:100%"><span style="display:block;height:5px;width:${w}%;background:${ok?"var(--goodline)":"var(--prop)"}"></span></span>`:""}</button>`;}).join("")}
-    <button data-act="setup" style="border:0;background:transparent;text-align:left;min-height:48px;padding:0 16px;font-size:17px;font-weight:600;color:var(--accent)">+ Add or edit historical data</button></div>`;
+    <button data-act="setup" style="border:0;background:transparent;text-align:left;min-height:48px;padding:0 16px;font-size:1rem;font-weight:600;color:var(--accent)">+ Add or edit historical data</button></div>`;
   const sp=splitOf(p.idx);
   const parts=[["Stocks",sp.stocks,"var(--stocks)"],["Property savings",sp.property,"var(--prop)"],["Holiday budget",sp.holiday,"var(--hol)"]].concat(S.pots.map(pt=>[esc(pt.name),sp.pots[pt.id]||0,pt.color]),[["Cash",sp.cash,"var(--cash)"]]);
   const splitHtml=`<section class="card glass" ${mode==="month"?`data-act="edit" data-i="${p.idx[0]}" aria-label="Edit where the money went in ${plabel(p.k,mode,false)}"`:`data-act="info" data-k="split" aria-label="Where the money went, details"`} role="button" tabindex="0">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">Where the money went</span>${mode==="month"?'<span style="font-size:15px;font-weight:600;color:var(--accent)">Edit</span>':`<span class="muted" style="font-size:13px">sum of ${p.idx.length} months</span>`}</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:1rem;font-weight:600">Where the money went</span>${mode==="month"?'<span style="font-size:0.8824rem;font-weight:600;color:var(--accent)">Edit</span>':`<span class="muted" style="font-size:0.7647rem">sum of ${p.idx.length} months</span>`}</div>
     <div class="split" aria-hidden="true">${parts.filter(c=>c[1]>0).map(c=>`<span style="flex:${c[1]};background:${c[2]}"></span>`).join("")}</div>
-    <div style="display:flex;flex-direction:column;gap:10px">${parts.map(c=>`<div style="display:flex;align-items:center;gap:12px"><span class="dot" style="background:${c[2]}"></span><span style="flex:1">${c[0]}</span><span class="muted" style="font-size:13px;width:40px;text-align:right">${sp.saved?Math.round(c[1]/sp.saved*100):0}%</span><span class="num" style="width:64px;text-align:right">${fmt(c[1])}</span></div>`).join("")}</div>
-    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:15px"><span class="muted">Market gain on stocks</span><span class="num" style="color:${sp.gain>=0?"var(--good)":"var(--bad)"}">${sp.gain>=0?"+":"−"}${fmt(Math.abs(sp.gain))}</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px">${parts.map(c=>`<div style="display:flex;align-items:center;gap:12px"><span class="dot" style="background:${c[2]}"></span><span style="flex:1">${c[0]}</span><span class="muted" style="font-size:0.7647rem;width:40px;text-align:right">${sp.saved?Math.round(c[1]/sp.saved*100):0}%</span><span class="num" style="width:64px;text-align:right">${fmt(c[1])}</span></div>`).join("")}</div>
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:0.8824rem"><span class="muted">Market gain on stocks</span><span class="num" style="color:${sp.gain>=0?"var(--good)":"var(--bad)"}">${sp.gain>=0?"+":"−"}${fmt(Math.abs(sp.gain))}</span></div>
   </section>`;
   const chartHtml=`  <section class="card glass">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:17px;font-weight:600">Saved per ${name}</span>${goal?`<span class="muted" style="font-size:12px">dashed line = goal ${fmt(goal)}</span>`:""}</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font-size:1rem;font-weight:600">Saved per ${name}</span>${goal?`<span class="muted" style="font-size:0.7059rem">dashed line = goal ${fmt(goal)}</span>`:""}</div>
     <div class="chart">${goalLine}${bars}</div>
     <div class="xl">${slice.map(q=>`<span style="${q.k===p.k?"font-weight:700;color:var(--ink)":""}">${plabel(q.k,mode,true)}</span>`).join("")}</div>
-    ${slice.some(q=>q.idx.some(i=>S.months[i].est))?`<div class="muted" style="font-size:12px">Periods in 2025 use the monthly average of the 2025 yearly total.</div>`:""}
+    ${slice.some(q=>q.idx.some(i=>S.months[i].est))?`<div class="muted" style="font-size:0.7059rem">Periods in 2025 use the monthly average of the 2025 yearly total.</div>`:""}
   </section>`;
   return `
   <div class="head" style="align-items:center"><h1>History</h1>
@@ -415,17 +415,17 @@ function history(){
   <div style="display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <button class="btn round" data-act="hprev" aria-label="Previous ${name}" ${pi===0?"disabled":""}>‹</button>
-      <span style="display:flex;flex-direction:column;align-items:center;text-align:center"><span style="font-size:20px;font-weight:700">${plabel(p.k,mode,false)}</span><span class="muted" style="font-size:13px">${psub(p,mode)||"&nbsp;"}</span></span>
+      <span style="display:flex;flex-direction:column;align-items:center;text-align:center"><span style="font-size:1.1765rem;font-weight:700">${plabel(p.k,mode,false)}</span><span class="muted" style="font-size:0.7647rem">${psub(p,mode)||"&nbsp;"}</span></span>
       <button class="btn round" data-act="hnext" aria-label="Next ${name}" ${pi===ps.length-1?"disabled":""}>›</button>
     </div>
     <div style="display:flex;justify-content:center;gap:2px;margin-top:-6px">${dots}</div>
   </div>
   <section class="card glass" ${mode==="month"?`data-act="edit" data-i="${p.idx[0]}" aria-label="Edit ${plabel(p.k,mode,false)}"`:`data-act="info" data-k="hsum" aria-label="How this is calculated"`} role="button" tabindex="0">
-    <span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="muted" style="font-size:15px">${goal?"Saved vs goal":"Saved"} in ${plabel(p.k,mode,false)}</span>${mode==="month"?'<span style="font-size:15px;font-weight:600;color:var(--accent)">Edit</span>':""}</span>
-    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="big" style="font-size:40px">${chf(saved)}</span><span class="muted" style="font-size:15px">${goal?"of "+chf(goal)+" goal":est?"yearly average, no goal set":"no goal set"}</span></div>
-    ${goal?`<div style="display:flex;align-items:center;gap:10px"><span class="track"><span style="width:${Math.min(pct,100)}%;${pct>=100?"background:var(--goodline)":""}"></span></span><span style="font-size:15px;font-weight:700">${Math.round(pct)}%</span></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill ${pct>=100?"good":"warn"}" style="align-self:center">${pct>=100?"Goal reached · +"+fmt(saved-goal):CUR()+" "+fmt(goal-saved)+" short"}</span><span class="muted" style="font-size:13px">${mode==="month"?"":`Goal reached in ${hit} of ${withGoal.length} months`}</span></div>`:""}
-    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:13px" class="muted"><span>Savings rate <b style="color:var(--ink)">${Math.round(saved/inc*100)}%</b></span><span>${prev!==null?`vs ${prevName} <b style="color:${saved>=prev?"var(--good)":"var(--bad)"}">${saved>=prev?"▲":"▼"} ${chf(Math.abs(saved-prev))}</b>`:""}</span></div>
+    <span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span class="muted" style="font-size:0.8824rem">${goal?"Saved vs goal":"Saved"} in ${plabel(p.k,mode,false)}</span>${mode==="month"?'<span style="font-size:0.8824rem;font-weight:600;color:var(--accent)">Edit</span>':""}</span>
+    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="big" style="font-size:2.3529rem">${chf(saved)}</span><span class="muted" style="font-size:0.8824rem">${goal?"of "+chf(goal)+" goal":est?"yearly average, no goal set":"no goal set"}</span></div>
+    ${goal?`<div style="display:flex;align-items:center;gap:10px"><span class="track"><span style="width:${Math.min(pct,100)}%;${pct>=100?"background:var(--goodline)":""}"></span></span><span style="font-size:0.8824rem;font-weight:700">${Math.round(pct)}%</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="pill ${pct>=100?"good":"warn"}" style="align-self:center">${pct>=100?"Goal reached · +"+fmt(saved-goal):CUR()+" "+fmt(goal-saved)+" short"}</span><span class="muted" style="font-size:0.7647rem">${mode==="month"?"":`Goal reached in ${hit} of ${withGoal.length} months`}</span></div>`:""}
+    <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px;font-size:0.7647rem" class="muted"><span>Savings rate <b style="color:var(--ink)">${Math.round(saved/inc*100)}%</b></span><span>${prev!==null?`vs ${prevName} <b style="color:${saved>=prev?"var(--good)":"var(--bad)"}">${saved>=prev?"▲":"▼"} ${chf(Math.abs(saved-prev))}</b>`:""}</span></div>
   </section>
   ${mode==="month"?"":listHtml}
   ${splitHtml}
@@ -440,11 +440,11 @@ function goals(){
   return `<h1>Goals</h1>
   ${onTrackCard()}
   ${propCard(b)}
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="section" style="margin:0">Savings goals</div><button class="link" data-act="addgoal" style="font-size:17px">+ Add</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><div class="section" style="margin:0">Savings goals</div><button class="link" data-act="addgoal" style="font-size:1rem">+ Add</button></div>
   <div class="list glass">
     ${gl.map(g=>{const pc=g.t>0?Math.min(Math.max(g.v,0)/g.t*100,100):0;return `
     <div class="grow" data-act="info" data-k="${g.k}" ${g.a?`data-a="${g.a}"`:""} role="button" tabindex="0" aria-label="${g.n} details">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:17px">${g.n}</span>${pc>=100||g.nofi?`<span style="display:flex;gap:8px;font-size:13px">${pc>=100?'<span style="color:var(--good);font-weight:600">✓ reached</span>':""}${g.nofi?'<span class="muted">not counted</span>':""}</span>`:""}</span><span class="muted num" style="font-size:15px;white-space:nowrap;padding-top:2px">${fmt(Math.max(g.v,0))} / ${fmt(g.t)}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:1rem">${g.n}</span>${pc>=100||g.nofi?`<span style="display:flex;gap:8px;font-size:0.7647rem">${pc>=100?'<span style="color:var(--good);font-weight:600">✓ reached</span>':""}${g.nofi?'<span class="muted">not counted</span>':""}</span>`:""}</span><span class="muted num" style="font-size:0.8824rem;white-space:nowrap;padding-top:2px">${fmt(Math.max(g.v,0))} / ${fmt(g.t)}</span></div>
       <span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${pc}%;background:${g.c}"></span></span></div>`;}).join("")}
   </div>
   ${S.pots.length?"":`<p class="note">Saving for something else, like a car or a wedding? Add it as its own goal and give it a line in every check-in.</p>`}`;
@@ -468,7 +468,7 @@ function settings(){
   <div class="list glass">${rb("backup","Download backup")}${rb("restore","Restore from backup file","",1)}</div>
   <p class="note">The backup is a file saved in your Files app; you choose where, e.g. On My iPhone or iCloud Drive. Last backup: ${backupLabel()}. If it gets older than 2 months, Safe reminds you after a check-in and on Home. Restoring replaces the data on this iPhone.</p>
   <div class="section">General</div>
-  <div class="list glass"><div class="row" data-act="demo"><span id="demo-l" style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span>Demo mode</span><span class="muted" style="font-size:13px">Hides your numbers and shows a made-up person</span></span><button class="switch" role="switch" aria-checked="${!!S.demo}" aria-labelledby="demo-l" data-act="demo"></button></div></div>
+  <div class="list glass"><div class="row" data-act="demo"><span id="demo-l" style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span>Demo mode</span><span class="muted" style="font-size:0.7647rem">Hides your numbers and shows a made-up person</span></span><button class="switch" role="switch" aria-checked="${!!S.demo}" aria-labelledby="demo-l" data-act="demo"></button></div></div>
   <p class="note">Use it to show Safe to someone. Your data stays untouched; anything changed in Demo mode is discarded when you switch it off.</p>
   <div class="list glass"><button class="row" data-act="curmenu" aria-haspopup="menu" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink)"><span style="flex:1">Currency</span><span style="color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px">${CUR()}${IC.chev}</span></button></div>
   <div class="list glass">${rb("wipe","Delete all data","var(--bad)",1)}</div>
@@ -506,7 +506,7 @@ function openInfo(k,a,replace){
     
     ${oneoffList()}
     <p class="explain">Net worth adds up cash, the current value of your stocks, property savings, the holiday budget, your goals and owned property (value minus mortgage). Financial goal progress leaves out the holiday budget, goals you plan to spend and property you didn’t switch on.</p>`;
-    action=`<button class="btn" data-act="addoneoff">One-off amount</button><button class="link" data-act="addasset" style="font-size:17px;min-height:48px">Add owned property</button>`;
+    action=`<button class="btn" data-act="addoneoff">One-off amount</button><button class="link" data-act="addasset" style="font-size:1rem;min-height:48px">Add owned property</button>`;
   }else if(k==="cat"){
     const C={cash:["Cash savings","--cash",b.cash,r.cash,j=>bal(j).cash],stocks:["Stocks","--stocks",b.value,r.stockValue-prevVal,j=>bal(j).value],property:["Property savings","--prop",b.property,r.property,j=>bal(j).property],holiday:["Holiday budget","--hol",b.holiday,r.holiday,j=>bal(j).holiday]}[a];
     const h=last6(C[4]);
@@ -546,7 +546,7 @@ function openInfo(k,a,replace){
     action=`<button class="btn" data-act="info" data-k="ontrack">Change goal or returns</button>`;
   }else if(k==="prop"){
     title="First property";
-    const f=(id,label,val,suf,hint)=>`<label class="row" for="pp-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:""}</span><input class="val" id="pp-${id}" data-pp="${id}" inputmode="decimal" value="${val}" placeholder="${id==="income"?fmt(propCalc(b).incAuto):""}" style="width:96px">${suf?`<span class="muted" style="font-size:15px">${suf}</span>`:""}</label>`;
+    const f=(id,label,val,suf,hint)=>`<label class="row" for="pp-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:0.7059rem">${hint}</span>`:""}</span><input class="val" id="pp-${id}" data-pp="${id}" inputmode="decimal" value="${val}" placeholder="${id==="income"?fmt(propCalc(b).incAuto):""}" style="width:96px">${suf?`<span class="muted" style="font-size:0.8824rem">${suf}</span>`:""}</label>`;
     const pp=Object.assign({},PPDEF,S.pp||{});
     body=`<div id="pp-res"></div>
     <div class="section" style="padding-left:4px">Your numbers</div>
@@ -558,15 +558,15 @@ function openInfo(k,a,replace){
   }else if(k==="ontrack"){
     title="On track";
     const ot=Object.assign({best:8,mid:5,worst:2},S.ot||{});
-    const f=(id,label,val,suf,hint)=>`<label class="row" for="ot-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:12px">${hint}</span>`:""}</span><input class="val" id="ot-${id}" data-ot="${id}" inputmode="decimal" value="${val}" style="width:90px">${suf?`<span class="muted" style="font-size:15px">${suf}</span>`:""}</label>`;
+    const f=(id,label,val,suf,hint)=>`<label class="row" for="ot-${id}"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${hint?"8px 0":"0"}"><span>${label}</span>${hint?`<span class="muted" style="font-size:0.7059rem">${hint}</span>`:""}</span><input class="val" id="ot-${id}" data-ot="${id}" inputmode="decimal" value="${val}" style="width:90px">${suf?`<span class="muted" style="font-size:0.8824rem">${suf}</span>`:""}</label>`;
     body=`<div id="ot-res"></div>
     <div class="section" style="padding-left:4px">Your target</div>
     <div class="field">${f("birthYear","Birth year",S.birthYear||"","","Used only to calculate your age")}${f("fiAge","Goal age",S.fiAge,"")}${f("chartAge","Show chart until age",S.chartAge||62,"")}${f("fi","Financial goal",fmt(S.fi),CUR())}</div>
     ${(()=>{const to=S.sinceTo!=null?S.sinceTo:(S.months.length?ym(S.months[0].y,S.months[0].m):(S.createdYm!=null?S.createdYm:ym(S.today.y,S.today.m)));
       const sk=S.since!=null?S.since:null,sy=sk!=null?kYM(sk):{y:0,m:0},ys=[];for(let y=kYM(to-1).y;y>=S.today.y-40;y--)ys.push(y);const e=sinceEst();
       return `<div class="section" style="padding-left:4px">Saving since</div><div class="field"><div class="row" style="min-height:58px;gap:8px"><select class="sel" id="ot-sm" aria-label="Saving since, month"><option value="0">Month</option>${MONTHS.map((n,i)=>`<option value="${i+1}"${sy.m===i+1?" selected":""}>${n}</option>`).join("")}</select><select class="sel" id="ot-sy" aria-label="Saving since, year"><option value="0">Year</option>${ys.map(y=>`<option value="${y}"${sy.y===y?" selected":""}>${y}</option>`).join("")}</select></div>
-      ${e?`<div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:15px">Estimated average</span><b>${chf(e.fi)}/month</b></div>`:""}</div>
-      <p class="explain" style="font-size:13px">When you started building the savings you had at setup. Safe divides them by the months since then and uses that average until you have 12 check-ins.</p>`;})()}
+      ${e?`<div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:0.8824rem">Estimated average</span><b>${chf(e.fi)}/month</b></div>`:""}</div>
+      <p class="explain" style="font-size:0.7647rem">When you started building the savings you had at setup. Safe divides them by the months since then and uses that average until you have 12 check-ins.</p>`;})()}
     <div class="section" style="padding-left:4px">Average return per year</div>
     <div class="field">${f("best","Best case",ot.best,"%")}${f("mid","Middle case",ot.mid,"%")}${f("worst","Worst case",ot.worst,"%")}</div>
     <p class="explain">Safe takes your current stock value and lets it grow at each return, adding the average you put into stocks per month. Cash, property savings and other money for your goal are added without return. The average comes from your last 12 check-ins (missing months use your “Saving since” estimate) and updates every month. Markets go up and down; the three lines show a range, not a promise.</p>`;
@@ -575,14 +575,14 @@ function openInfo(k,a,replace){
     title="Holiday budget";
     body=`<span class="big">${chf(b.holiday)}</span><span class="muted">of ${chf(S.holidayTarget)} target</span>
     ${kv([["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(S.holidayTarget-b.holiday,per)]])}
-    <div class="field"><label class="row" for="t-s-hol"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-hol" data-set="s-hol" inputmode="decimal" value="${fmt(S.holidayTarget)}" style="width:110px"><span class="muted" style="font-size:15px">${CUR()}</span></label></div>
+    <div class="field"><label class="row" for="t-s-hol"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-hol" data-set="s-hol" inputmode="decimal" value="${fmt(S.holidayTarget)}" style="width:110px"><span class="muted" style="font-size:0.8824rem">${CUR()}</span></label></div>
     <p class="explain">Not in the financial goal: this money counts in your net worth but not in financial goal progress, because you plan to spend it. Tap the target to change it.</p>`;
   }else if(k==="emer"){
     const per=avgOf("cash",6);
     title="Emergency fund";
     body=`<span class="big">${chf(Math.min(b.cash,S.emergency))}</span><span class="muted">of ${chf(S.emergency)} target · held as cash</span>
     ${kv([["Cash now",chf(b.cash)],["Still to go",chf(Math.max(S.emergency-b.cash,0))],["Avg cash added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(S.emergency-b.cash,per)]])}
-    <div class="field"><label class="row" for="t-s-emer"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-emer" data-set="s-emer" inputmode="decimal" value="${fmt(S.emergency)}" style="width:110px"><span class="muted" style="font-size:15px">${CUR()}</span></label></div>
+    <div class="field"><label class="row" for="t-s-emer"><span style="flex:1;font-weight:600">Target</span><input class="val" id="t-s-emer" data-set="s-emer" inputmode="decimal" value="${fmt(S.emergency)}" style="width:110px"><span class="muted" style="font-size:0.8824rem">${CUR()}</span></label></div>
     <p class="explain">${r.income?`The target is about ${(S.emergency/r.income).toFixed(1)} months of income. `:""}It's filled by the cash part of each check-in. Tap the target to change it.</p>`;
   }else if(k==="pot"){
     const pt=S.pots.find(x=>x.id===a);if(!pt)return;
@@ -592,7 +592,7 @@ function openInfo(k,a,replace){
     
     ${kv([["Still to go",chf(Math.max(pt.target-v,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(pt.target-v,per)],["Counts toward financial goal",pt.fi?"Yes":"No"]])}
     <p class="explain">${pt.fi?"This goal counts toward your financial goal because the money stays yours long term.":"Not in the financial goal: it counts in your net worth, but not in financial goal progress, because you plan to spend it."} You put money in it with its own line in the check-in; that amount comes out of cash.</p>`;
-    action=`<button class="btn" data-act="goaledit" data-a="${pt.id}">Edit goal</button><button class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete goal</button>`;
+    action=`<button class="btn" data-act="goaledit" data-a="${pt.id}">Edit goal</button><button class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:1rem;min-height:48px">Delete goal</button>`;
   }else if(k==="late"){
     const dm=dueMonth(),n=refK()-ym(dm.y,dm.m)+1;
     title="Late check-in";
@@ -617,7 +617,7 @@ function openInfo(k,a,replace){
   }
   if(PAGEK.has(k)){openPage(k,a,title,body,action,replace);if(k==="prop")wireProp();if(k==="ontrack")wireOnTrack();return;}
   const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t">
-  <div class="inner"><div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
+  <div class="inner"><div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:1.2941rem;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
   if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
   bindSwipe([...layer.querySelectorAll(".sheet")].pop());
   if(k==="prop")wireProp();
@@ -840,29 +840,29 @@ function openSheet(i){
   layer.innerHTML=`<div class="scrim" data-act="close"></div>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">
   <form class="inner" id="ci" novalidate>
-    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="sh-t" style="margin:0;font-size:17px;font-weight:700">${MONTHS[m-1]} ${isNew?"check-in":y}</h2>${XB}</div>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="sh-t" style="margin:0;font-size:1rem;font-weight:700">${MONTHS[m-1]} ${isNew?"check-in":y}</h2>${XB}</div>
     ${late?`<p class="note" style="color:var(--warn);font-weight:600">Late check-in: use your numbers from the end of ${MONTHS[m-1]}.</p>`:""}
     ${r&&r.est?`<p class="note" style="color:var(--warn)">This month shows the average of the ${r.y} yearly total. Saving here replaces it with exact numbers.</p>`:""}
     <div class="field">
       <label class="row" for="f-income"><span style="flex:1">Income</span><input class="val" id="f-income" inputmode="decimal" value="${v.income===""?"":fmt(v.income)}" placeholder="0"></label>
-      <label class="row" for="f-saved" style="min-height:54px"><span style="flex:1;font-weight:600">Saved ${isNew&&!late?"this month":"in "+MONTHS[m-1]}</span><input class="val" id="f-saved" inputmode="decimal" value="${v.saved===""?"":fmt(v.saved)}" placeholder="0" style="font-size:24px;font-weight:700;color:var(--accent);width:140px"></label>
+      <label class="row" for="f-saved" style="min-height:54px"><span style="flex:1;font-weight:600">Saved ${isNew&&!late?"this month":"in "+MONTHS[m-1]}</span><input class="val" id="f-saved" inputmode="decimal" value="${v.saved===""?"":fmt(v.saved)}" placeholder="0" style="font-size:1.4118rem;font-weight:700;color:var(--accent);width:140px"></label>
     </div>
-    <div style="display:flex;justify-content:space-between;padding:0 6px;font-size:13px;gap:8px" class="muted"><span id="c-rate"></span><span id="c-goal"></span></div>
-    <div style="display:flex;flex-direction:column;gap:6px;padding:0 2px"><span class="section" style="padding-left:4px;margin:0" id="c-head"></span><div class="split" id="c-bar" aria-hidden="true"></div><span id="c-err" role="alert" style="font-size:13px;font-weight:600;color:var(--bad);padding-left:4px"></span></div>
+    <div style="display:flex;justify-content:space-between;padding:0 6px;font-size:0.7647rem;gap:8px" class="muted"><span id="c-rate"></span><span id="c-goal"></span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;padding:0 2px"><span class="section" style="padding-left:4px;margin:0" id="c-head"></span><div class="split" id="c-bar" aria-hidden="true"></div><span id="c-err" role="alert" style="font-size:0.7647rem;font-weight:600;color:var(--bad);padding-left:4px"></span></div>
     <div class="field">
       <label class="row" for="f-stocks"><span class="dot" style="background:var(--stocks)"></span><span style="flex:1">Stocks</span><input class="val" id="f-stocks" inputmode="decimal" value="${v.stocks===""?"":fmt(v.stocks)}" placeholder="${lr&&isNew?fmt(lr.stocks):"0"}" style="width:100px"></label>
       <label class="row" for="f-prop"><span class="dot" style="background:var(--prop)"></span><span style="flex:1">Property savings</span><input class="val" id="f-prop" inputmode="decimal" value="${v.property===""?"":fmt(v.property)}" placeholder="${lr&&isNew?fmt(lr.property):"0"}" style="width:100px"></label>
       <label class="row" for="f-hol"><span class="dot" style="background:var(--hol)"></span><span style="flex:1">Holiday budget</span><input class="val" id="f-hol" inputmode="decimal" value="${v.holiday===""?"":fmt(v.holiday)}" placeholder="${lr&&isNew?fmt(lr.holiday):"0"}" style="width:100px"></label>
       ${potRows}
-      <div class="row muted"><span class="dot" style="background:var(--cash)"></span><span style="flex:1">Cash <span style="font-size:13px">· rest, automatic</span></span><span class="num" id="c-cash" style="color:var(--ink)"></span></div>
+      <div class="row muted"><span class="dot" style="background:var(--cash)"></span><span style="flex:1">Cash <span style="font-size:0.7647rem">· rest, automatic</span></span><span class="num" id="c-cash" style="color:var(--ink)"></span></div>
     </div>
     <div class="field">
       <label class="row" for="f-value"><span style="flex:1">Stock portfolio value ${late?"end of "+MS[m-1]:"now"}</span><input class="val" id="f-value" inputmode="decimal" value="${v.stockValue===""?"":fmt(v.stockValue)}" placeholder="${prevVal?fmt(prevVal):"0"}" style="width:110px"></label>
-      <div style="display:flex;justify-content:space-between;padding:0 16px 10px;font-size:13px" class="muted"><span id="c-paid"></span><span id="c-gain" style="font-weight:600"></span></div>
+      <div style="display:flex;justify-content:space-between;padding:0 16px 10px;font-size:0.7647rem" class="muted"><span id="c-paid"></span><span id="c-gain" style="font-weight:600"></span></div>
     </div>
     <div class="field"><label class="row" for="f-goal"><span style="flex:1">${goalLabel}</span><input class="val" id="f-goal" inputmode="decimal" value="${v.goal?fmt(v.goal):""}" placeholder="0" style="width:100px"></label></div>
     <button class="btn" type="submit" id="c-save">${isNew?"Save check-in":"Save changes"}</button>
-    ${isNew?"":`<button type="button" class="link" data-act="delmonth" style="color:var(--bad);font-size:17px;min-height:48px">Delete ${MONTHS[m-1]} ${y}</button>`}
+    ${isNew?"":`<button type="button" class="link" data-act="delmonth" style="color:var(--bad);font-size:1rem;min-height:48px">Delete ${MONTHS[m-1]} ${y}</button>`}
   </form></div>`;
   const f=document.getElementById("ci");
   const calc=()=>{
@@ -924,7 +924,7 @@ function dismissSheet(force,sh){
 }
 function askDiscard(){
   if(layer.querySelector(".askbox"))return;
-  layer.insertAdjacentHTML("beforeend",`<div class="ascrim" data-act="keep"></div><div class="askbox" role="alertdialog" aria-modal="true" aria-label="Discard changes?"><p class="muted" style="margin:6px 0 4px;text-align:center;font-size:13px">Your changes haven't been saved.</p><button class="btn danger" data-act="discard">Discard changes</button><button class="btn" data-act="keep">Keep editing</button></div>`);
+  layer.insertAdjacentHTML("beforeend",`<div class="ascrim" data-act="keep"></div><div class="askbox" role="alertdialog" aria-modal="true" aria-label="Discard changes?"><p class="muted" style="margin:6px 0 4px;text-align:center;font-size:0.7647rem">Your changes haven't been saved.</p><button class="btn danger" data-act="discard">Discard changes</button><button class="btn" data-act="keep">Keep editing</button></div>`);
 }
 function close(){FL=false;pending=null;if(layer.querySelector(".dpage")&&!layer.querySelector(".full:not(.dpage)")){[...layer.children].forEach(c=>{if(!c.classList.contains("dpage"))c.remove();});refreshPage();return;}layer.innerHTML="";}
 function closeAll(){layer.innerHTML="";FL=false;pending=null;}
@@ -933,10 +933,10 @@ function closeAll(){layer.innerHTML="";FL=false;pending=null;}
 let pending=null;
 function confirmBox(o){
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="modal glass" role="alertdialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-d" style="--g1:var(--sheet);--g2:var(--sheet)">
-  <h2 id="cf-t" style="margin:4px 0 0;font-size:20px">${o.title}</h2><p id="cf-d" class="muted" style="margin:0;font-size:15px;line-height:1.45">${o.text}</p>
-  ${o.type?`<label style="align-self:stretch;display:flex;flex-direction:column;gap:6px;text-align:left;margin-top:4px"><span class="muted" style="font-size:13px">Type <b style="color:var(--ink)">${o.type}</b> to confirm</span><input id="cf-in" autocomplete="off" autocapitalize="characters" spellcheck="false" style="min-height:46px;border-radius:14px;border:1px solid var(--fieldb);background:var(--field);padding:0 14px;font-size:17px;box-sizing:border-box"></label>`:""}
+  <h2 id="cf-t" style="margin:4px 0 0;font-size:1.1765rem">${o.title}</h2><p id="cf-d" class="muted" style="margin:0;font-size:0.8824rem;line-height:1.45">${o.text}</p>
+  ${o.type?`<label style="align-self:stretch;display:flex;flex-direction:column;gap:6px;text-align:left;margin-top:4px"><span class="muted" style="font-size:0.7647rem">Type <b style="color:var(--ink)">${o.type}</b> to confirm</span><input id="cf-in" autocomplete="off" autocapitalize="characters" spellcheck="false" style="min-height:46px;border-radius:14px;border:1px solid var(--fieldb);background:var(--field);padding:0 14px;font-size:1rem;box-sizing:border-box"></label>`:""}
   <button class="btn ${o.safe?"":"danger"}" data-act="confirm" id="cf-ok" style="align-self:stretch;margin-top:6px" ${o.type?"disabled":""}>${o.ok}</button>
-  <button class="link" data-act="close" style="font-size:17px">Cancel</button></div>`;
+  <button class="link" data-act="close" style="font-size:1rem">Cancel</button></div>`;
   pending=o.run;
   if(o.type){const inp=document.getElementById("cf-in"),ok=document.getElementById("cf-ok");inp.addEventListener("input",()=>{ok.disabled=inp.value.trim().toUpperCase()!==o.type;});setTimeout(()=>inp.focus(),60);}
 }
@@ -993,15 +993,15 @@ function openGoalSheet(id){
   const pt=id?S.pots.find(p=>p.id===id):null;goalEdit=pt?pt.id:null;
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="g-t">
   <form class="inner" id="gf" novalidate>
-    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="g-t" style="margin:0;font-size:17px;font-weight:700">${pt?"Edit goal":"New savings goal"}</h2>${XB}</div>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="g-t" style="margin:0;font-size:1rem;font-weight:700">${pt?"Edit goal":"New savings goal"}</h2>${XB}</div>
     <div class="field">
       <label class="row" for="g-name"><span style="flex:1">Name</span><input class="val" id="g-name" placeholder="e.g. New car" value="${pt?esc(pt.name):""}" maxlength="24" autocomplete="off" style="width:180px"></label>
       <label class="row" for="g-target"><span style="flex:1">Target (${CUR()})</span><input class="val" id="g-target" inputmode="decimal" placeholder="0" value="${pt?fmt(pt.target):""}"></label>
     </div>
-    <div class="field"><div class="row" data-act="gfi" style="min-height:62px"><span id="g-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward financial goal</span><span class="muted" style="font-size:13px">Leave off for money you plan to spend</span></span><button type="button" class="switch" id="g-fi" role="switch" aria-checked="${pt?pt.fi:false}" aria-labelledby="g-fi-l" data-act="gfi"></button></div></div>
+    <div class="field"><div class="row" data-act="gfi" style="min-height:62px"><span id="g-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward financial goal</span><span class="muted" style="font-size:0.7647rem">Leave off for money you plan to spend</span></span><button type="button" class="switch" id="g-fi" role="switch" aria-checked="${pt?pt.fi:false}" aria-labelledby="g-fi-l" data-act="gfi"></button></div></div>
     <p class="note">The goal gets its own line in every check-in. What you put there comes out of cash, and it shows on Home and in Goals.</p>
     <button class="btn" type="submit" id="g-save">${pt?"Save changes":"Add goal"}</button>
-    ${pt?`<button type="button" class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete goal</button>`:""}
+    ${pt?`<button type="button" class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:1rem;min-height:48px">Delete goal</button>`:""}
   </form></div>`;
   const f=document.getElementById("gf"),nm=document.getElementById("g-name"),tg=document.getElementById("g-target"),sv=document.getElementById("g-save");
   const ok=()=>{sv.disabled=!(nm.value.trim()&&parse(tg.value)>0);};
@@ -1016,11 +1016,11 @@ function openGoalSheet(id){
 const TOS=()=>[["cash","Cash"],["stocks","Stocks"],["property","Property savings"],["holiday","Holiday budget"]].concat(S.pots.map(p=>[p.id,p.name]));
 const toName=t=>{const x=TOS().find(o=>o[0]===t);return x?x[1]:"Cash";};
 function oneoffList(){const xs=(S.oneoffs||[]).slice().sort((a,b)=>ym(b.y,b.m)-ym(a.y,a.m));if(!xs.length)return "";
-  return `<div class="section" style="padding-left:4px">One-off amounts</div><div class="field">${xs.map(o=>`<button type="button" class="row" data-act="info" data-k="oneoff" data-a="${o.id}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink)"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>${esc(o.label||"One-off")}</span><span class="muted" style="font-size:13px">${MONTHS[o.m-1]} ${o.y} · into ${esc(toName(o.to))}</span></span><span class="num">+${fmt(o.amount)}</span></button>`).join("")}</div>`;}
+  return `<div class="section" style="padding-left:4px">One-off amounts</div><div class="field">${xs.map(o=>`<button type="button" class="row" data-act="info" data-k="oneoff" data-a="${o.id}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink)"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>${esc(o.label||"One-off")}</span><span class="muted" style="font-size:0.7647rem">${MONTHS[o.m-1]} ${o.y} · into ${esc(toName(o.to))}</span></span><span class="num">+${fmt(o.amount)}</span></button>`).join("")}</div>`;}
 function openAddMenu(){
-  const d=dueMonth(),it=(act,ic,t,s)=>`<button class="row" data-act="${act}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink);min-height:68px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px">${s}</span></span></button>`;
+  const d=dueMonth(),it=(act,ic,t,s)=>`<button class="row" data-act="${act}" style="border:0;background:transparent;text-align:left;width:100%;color:var(--ink);min-height:68px"><span style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-size:1rem;font-weight:600">${t}</span><span class="muted" style="font-size:0.7647rem">${s}</span></span></button>`;
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="am-t"><div class="inner">
-  <div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="am-t" style="margin:0;font-size:22px;font-weight:700">Add</h2>${XB}</div>
+  <div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="am-t" style="margin:0;font-size:1.2941rem;font-weight:700">Add</h2>${XB}</div>
   <div class="field">${it("sheet",IC.checkin,"Monthly check-in",d?`${MONTHS[d.m-1]} ${d.y}`:"This month is logged – edit it in History")}${it("addoneoff",IC.plus,"One-off amount","Inheritance, gift, bonus – not counted as monthly saving")}${it("addasset",IC.house,"Owned property","e.g. an inherited home: value and mortgage")}</div></div></div>`;
   bindSwipe(layer.querySelector(".sheet"));
 }
@@ -1029,9 +1029,9 @@ function openOneoffSheet(id){
   const ys=[];for(let y=S.today.y;y>=S.today.y-10;y--)ys.push(y);
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="o-t">
   <form class="inner" id="of" novalidate>
-    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="o-t" style="margin:0;font-size:17px;font-weight:700">${o?"Edit one-off":"One-off amount"}</h2>${XB}</div>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="o-t" style="margin:0;font-size:1rem;font-weight:700">${o?"Edit one-off":"One-off amount"}</h2>${XB}</div>
     <div class="field">
-      <label class="row" for="o-amt" style="min-height:54px"><span style="flex:1;font-weight:600">Amount (${CUR()})</span><input class="val" id="o-amt" inputmode="decimal" placeholder="0" value="${o?fmt(o.amount):""}" style="font-size:24px;font-weight:700;color:var(--accent);width:150px"></label>
+      <label class="row" for="o-amt" style="min-height:54px"><span style="flex:1;font-weight:600">Amount (${CUR()})</span><input class="val" id="o-amt" inputmode="decimal" placeholder="0" value="${o?fmt(o.amount):""}" style="font-size:1.4118rem;font-weight:700;color:var(--accent);width:150px"></label>
       <label class="row" for="o-lbl"><span style="flex:1">What was it?</span><input class="val" id="o-lbl" placeholder="e.g. Inheritance" value="${o?esc(o.label||""):""}" maxlength="28" autocomplete="off" style="width:180px"></label>
     </div>
     <div class="section" style="padding-left:4px">Where did the money go?</div>
@@ -1040,7 +1040,7 @@ function openOneoffSheet(id){
     <div class="field"><div class="row" style="min-height:58px;gap:8px"><select class="sel" id="o-m" aria-label="Month">${MONTHS.map((n,i)=>`<option value="${i+1}"${ref.m===i+1?" selected":""}>${n}</option>`).join("")}</select><select class="sel" id="o-y" aria-label="Year">${ys.map(y=>`<option value="${y}"${ref.y===y?" selected":""}>${y}</option>`).join("")}</select></div></div>
     <p class="note">Adds to your net worth and financial goal progress, but not to your monthly saving – so your savings rate and the On track average stay realistic.</p>
     <button class="btn" type="submit" id="o-save">${o?"Save changes":"Add one-off"}</button>
-    ${o?`<button type="button" class="link" data-act="deloneoff" data-a="${o.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete one-off</button>`:""}
+    ${o?`<button type="button" class="link" data-act="deloneoff" data-a="${o.id}" style="color:var(--bad);font-size:1rem;min-height:48px">Delete one-off</button>`:""}
   </form></div>`;
   const f=document.getElementById("of"),am=document.getElementById("o-amt"),sv=document.getElementById("o-save");
   const ok=()=>{sv.disabled=!(parse(am.value)>0);};
@@ -1058,17 +1058,17 @@ function openAssetSheet(id){
   const a=id?(S.assets||[]).find(x=>x.id===id):null;
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="a-t">
   <form class="inner" id="af" novalidate>
-    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="a-t" style="margin:0;font-size:17px;font-weight:700">${a?"Edit property":"Owned property"}</h2>${XB}</div>
+    <div class="shead" style="display:flex;align-items:center;justify-content:space-between"><span style="width:32px"></span><h2 id="a-t" style="margin:0;font-size:1rem;font-weight:700">${a?"Edit property":"Owned property"}</h2>${XB}</div>
     <div class="field">
       <label class="row" for="a-name"><span style="flex:1">Name</span><input class="val" id="a-name" placeholder="e.g. Grandparents’ house" value="${a?esc(a.name):""}" maxlength="28" autocomplete="off" style="width:190px"></label>
       <label class="row" for="a-val"><span style="flex:1">Market value (${CUR()})</span><input class="val" id="a-val" inputmode="decimal" placeholder="0" value="${a?fmt(a.value):""}"></label>
-      <label class="row" for="a-debt"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>Mortgage (${CUR()})</span><span class="muted" style="font-size:12px">Leave 0 if there is none</span></span><input class="val" id="a-debt" inputmode="decimal" placeholder="0" value="${a&&a.debt?fmt(a.debt):""}"></label>
-      <div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:15px">Your equity</span><b id="a-eq"></b></div>
+      <label class="row" for="a-debt"><span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:8px 0"><span>Mortgage (${CUR()})</span><span class="muted" style="font-size:0.7059rem">Leave 0 if there is none</span></span><input class="val" id="a-debt" inputmode="decimal" placeholder="0" value="${a&&a.debt?fmt(a.debt):""}"></label>
+      <div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:0.8824rem">Your equity</span><b id="a-eq"></b></div>
     </div>
-    <div class="field"><div class="row" data-act="afi" style="min-height:62px"><span id="a-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward financial goal</span><span class="muted" style="font-size:13px">Leave off if you live in it; switch on if it could fund your goal (e.g. rented out or to be sold)</span></span><button type="button" class="switch" id="a-fi" role="switch" aria-checked="${a?!!a.fi:false}" aria-labelledby="a-fi-l" data-act="afi"></button></div></div>
+    <div class="field"><div class="row" data-act="afi" style="min-height:62px"><span id="a-fi-l" style="flex:1;display:flex;flex-direction:column;gap:2px"><span>Count toward financial goal</span><span class="muted" style="font-size:0.7647rem">Leave off if you live in it; switch on if it could fund your goal (e.g. rented out or to be sold)</span></span><button type="button" class="switch" id="a-fi" role="switch" aria-checked="${a?!!a.fi:false}" aria-labelledby="a-fi-l" data-act="afi"></button></div></div>
     <p class="note">Equity (value minus mortgage) counts in your net worth. Update the value now and then; it doesn’t change by itself.</p>
     <button class="btn" type="submit" id="a-save">${a?"Save changes":"Add property"}</button>
-    ${a?`<button type="button" class="link" data-act="delasset" data-a="${a.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete property</button>`:""}
+    ${a?`<button type="button" class="link" data-act="delasset" data-a="${a.id}" style="color:var(--bad);font-size:1rem;min-height:48px">Delete property</button>`:""}
   </form></div>`;
   const f=document.getElementById("af"),nm=document.getElementById("a-name"),vl=document.getElementById("a-val"),db=document.getElementById("a-debt"),sv=document.getElementById("a-save"),eq=document.getElementById("a-eq");
   const ok=()=>{const v=parse(vl.value),d=parse(db.value||0);eq.textContent=chf(v-d);sv.disabled=!(nm.value.trim()&&v>0&&d>=0);};
@@ -1092,19 +1092,19 @@ function deletePot(id){
 /* ---------- other overlays ---------- */
 function openCurMenu(btn){
   const r=btn.getBoundingClientRect(),h=3*46+12,top=r.bottom+6+h>innerHeight-90?r.top-h-6:r.bottom+6;
-  layer.innerHTML=`<div class="scrim" data-act="close" style="background:transparent"></div><div class="menu glass" role="menu" aria-label="Currency" style="top:${Math.round(top)}px;width:230px">${CURS.map(c=>`<button role="menuitemradio" aria-checked="${CUR()===c[0]}" data-act="currency" data-v="${c[0]}"><span>${c[0]} <span class="muted" style="font-size:13px;font-weight:400">${c[1]}</span></span><span class="muted" style="font-size:13px">${CUR()===c[0]?"✓":""}</span></button>`).join("")}</div>`;
+  layer.innerHTML=`<div class="scrim" data-act="close" style="background:transparent"></div><div class="menu glass" role="menu" aria-label="Currency" style="top:${Math.round(top)}px;width:230px">${CURS.map(c=>`<button role="menuitemradio" aria-checked="${CUR()===c[0]}" data-act="currency" data-v="${c[0]}"><span>${c[0]} <span class="muted" style="font-size:0.7647rem;font-weight:400">${c[1]}</span></span><span class="muted" style="font-size:0.7647rem">${CUR()===c[0]?"✓":""}</span></button>`).join("")}</div>`;
 }
 function openMenu(){
   const opts=[["month","Month",`${MONTHS[cur().m-1].slice(0,3)} ${cur().y}`],["quarter","Quarter",""],["year","Year",String(cur().y)]];
-  layer.innerHTML=`<div class="scrim" data-act="close" style="background:transparent"></div><div class="menu glass" role="menu" aria-label="Show history by">${opts.map(o=>`<button role="menuitemradio" aria-checked="${S.hmode===o[0]}" data-act="mode" data-mode="${o[0]}"><span>${o[1]}</span><span class="muted" style="font-size:13px">${S.hmode===o[0]?"✓":o[2]}</span></button>`).join("")}</div>`;
+  layer.innerHTML=`<div class="scrim" data-act="close" style="background:transparent"></div><div class="menu glass" role="menu" aria-label="Show history by">${opts.map(o=>`<button role="menuitemradio" aria-checked="${S.hmode===o[0]}" data-act="mode" data-mode="${o[0]}"><span>${o[1]}</span><span class="muted" style="font-size:0.7647rem">${S.hmode===o[0]?"✓":o[2]}</span></button>`).join("")}</div>`;
 }
 function openDue(){
   const d=dueMonth()||{y:S.today.y,m:S.today.m},late=isBehind(),dn=MONTHS[d.m-1];
   layer.innerHTML=`<div class="scrim" data-act="close"></div><div class="modal glass" role="dialog" aria-modal="true" aria-labelledby="due-t" style="--g1:var(--sheet);--g2:var(--sheet)">
-  <span style="transform:scale(1.5);margin:8px 0 6px">${appIcon}</span><h2 id="due-t" style="margin:6px 0 0;font-size:22px">Check-in due</h2>
-  <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${late?`You haven't logged ${dn} yet. Log it now, then ${MONTHS[refK()%12]} is next.`:`It's your check-in day. Log what you saved in ${dn} so your dashboard and goal progress stay up to date.`}</p>
+  <span style="transform:scale(1.5);margin:8px 0 6px">${appIcon}</span><h2 id="due-t" style="margin:6px 0 0;font-size:1.2941rem">Check-in due</h2>
+  <p class="muted" style="margin:0;font-size:0.8824rem;line-height:1.4">${late?`You haven't logged ${dn} yet. Log it now, then ${MONTHS[refK()%12]} is next.`:`It's your check-in day. Log what you saved in ${dn} so your dashboard and goal progress stay up to date.`}</p>
   <button class="btn" data-act="sheet" style="align-self:stretch;margin-top:8px">${late?`Check in ${dn}`:"Start check-in"}</button>
-  <button class="link" data-act="later" style="font-size:17px">Remind me tomorrow</button></div>`;
+  <button class="link" data-act="later" style="font-size:1rem">Remind me tomorrow</button></div>`;
 }
 /* full-screen shell (first launch + setup) */
 function shellFull(body,next,back,backBtn){
@@ -1123,15 +1123,15 @@ const ICS={
   lock:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
   bell:'<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>'
 };
-function featRow(ic,t,s){return `<div class="row" style="min-height:68px;align-items:center"><span class="feat-ic" style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span></div>`;}
+function featRow(ic,t,s){return `<div class="row" style="min-height:68px;align-items:center"><span class="feat-ic" style="width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent);flex:none">${ic}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:1rem;font-weight:600">${t}</span><span class="muted" style="font-size:0.7647rem;line-height:1.35">${s}</span></span></div>`;}
 /* ---------- intro tour, guide, first-visit tips ---------- */
 const PV={ /* mini previews of real app parts, drawn with sample numbers */
   checkin:()=>`<div class="pv glass" aria-hidden="true"><div class="pv-h"><span>September check-in</span><span class="pill good">Logged</span></div>
     <div class="pv-kv"><span class="muted">Income</span><b>6’500</b></div><div class="pv-kv"><span class="muted">Saved</span><b>2’100</b></div>
     <div class="pv-bar"><i style="flex:1080;background:var(--stocks)"></i><i style="flex:520;background:var(--cash)"></i><i style="flex:300;background:var(--prop)"></i><i style="flex:200;background:var(--hol)"></i></div>
     <div class="pv-leg"><span><i style="background:var(--stocks)"></i>Stocks 1’080</span><span><i style="background:var(--cash)"></i>Cash 520</span><span><i style="background:var(--prop)"></i>Property 300</span><span><i style="background:var(--hol)"></i>Holiday 200</span></div></div>`,
-  home:()=>`<div class="pv glass" aria-hidden="true"><span class="muted" style="font-size:12px">Net worth</span><b style="font-size:26px;letter-spacing:-.02em">${CUR()} 70’503</b><span class="pill good" style="align-self:flex-start">▲ ${CUR()} 2’905 this month</span>
-    ${[["Cash savings","23’745","var(--cash)",.8,"✓ Emergency fund filled"],["Stocks · paid in","26’280","var(--stocks)",.88,"current value 29’853 · volatile"],["Property savings","10’005","var(--prop)",.34,""]].map(r=>`<div class="pv-row"><span style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-size:13px;font-weight:600">${r[0]}</span>${r[4]?`<span class="muted" style="font-size:11px">${r[4]}</span>`:""}<span class="pv-track"><i style="width:${r[3]*100}%;background:${r[2]}"></i></span></span><b style="font-size:14px">${r[1]}</b></div>`).join("")}</div>`,
+  home:()=>`<div class="pv glass" aria-hidden="true"><span class="muted" style="font-size:0.7059rem">Net worth</span><b style="font-size:1.5294rem;letter-spacing:-.02em">${CUR()} 70’503</b><span class="pill good" style="align-self:flex-start">▲ ${CUR()} 2’905 this month</span>
+    ${[["Cash savings","23’745","var(--cash)",.8,"✓ Emergency fund filled"],["Stocks · paid in","26’280","var(--stocks)",.88,"current value 29’853 · volatile"],["Property savings","10’005","var(--prop)",.34,""]].map(r=>`<div class="pv-row"><span style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-size:0.7647rem;font-weight:600">${r[0]}</span>${r[4]?`<span class="muted" style="font-size:0.6471rem">${r[4]}</span>`:""}<span class="pv-track"><i style="width:${r[3]*100}%;background:${r[2]}"></i></span></span><b style="font-size:0.8235rem">${r[1]}</b></div>`).join("")}</div>`,
   ontrack:()=>{const W=300,H=130,X=t=>10+t*(W-50),Y=v=>H-18-v/2.4*(H-30);const curve=(r)=>{let s="";for(let i=0;i<=25;i++){const t=i/25,yrs=i*1.48,v=1000*12*((Math.pow(1+r,yrs)-1)/r)/1e6;s+=`${X(t).toFixed(1)},${Y(v).toFixed(1)} `;}return s;};
     return `<div class="pv glass" aria-hidden="true"><div class="pv-h"><span>On track by age 50?</span><span class="pill good">On track</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;overflow:visible">
@@ -1146,8 +1146,8 @@ const PV={ /* mini previews of real app parts, drawn with sample numbers */
     </svg>
     <div class="pv-leg"><span><i style="background:var(--goodline)"></i>Best 8%</span><span><i style="background:var(--accent)"></i>Middle 5%</span><span><i style="background:var(--prop)"></i>Worst 2%</span></div></div>`;},
   privacy:()=>`<div class="pv glass" aria-hidden="true" style="align-items:center;text-align:center;gap:10px"><span style="width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:var(--field);border:1px solid var(--fieldb);color:var(--accent)"><span style="transform:scale(1.4);display:flex">${ICS.lock}</span></span>
-    <b style="font-size:15px">Stored only on this iPhone</b>
-    <div class="pv-row" style="width:100%;text-align:left"><span style="width:32px;height:38px;border-radius:7px;background:var(--field);border:1px solid var(--fieldb);display:flex;align-items:flex-end;justify-content:center;font-size:8px;font-weight:700;color:var(--accent);padding-bottom:4px;box-sizing:border-box;flex:none">JSON</span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:600">Safe-backup-2026-10.json</span><span class="muted" style="font-size:11px">Saved in Files · iCloud Drive</span></span></div></div>`
+    <b style="font-size:0.8824rem">Stored only on this iPhone</b>
+    <div class="pv-row" style="width:100%;text-align:left"><span style="width:32px;height:38px;border-radius:7px;background:var(--field);border:1px solid var(--fieldb);display:flex;align-items:flex-end;justify-content:center;font-size:0.4706rem;font-weight:700;color:var(--accent);padding-bottom:4px;box-sizing:border-box;flex:none">JSON</span><span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:0.7647rem;font-weight:600">Safe-backup-2026-10.json</span><span class="muted" style="font-size:0.6471rem">Saved in Files · iCloud Drive</span></span></div></div>`
 };
 const TOUR=[
   {pv:"checkin",t:"Check in once a month",s:"On your check-in day (you pick it), enter your income and what you saved, then split it into stocks, cash, property, holiday and your own goals. It takes about two minutes."},
@@ -1163,8 +1163,8 @@ function drawTour(i){
   layer.innerHTML=shellFull(`<div class="tour" style="display:flex;flex-direction:column;gap:16px;padding-top:12px">
       <div class="eyebrow">${i+1} of ${TOUR.length}</div>
       ${PV[st.pv]()}
-      <h1 style="font-size:30px;margin:6px 0 0">${st.t}</h1>
-      <p class="muted" style="margin:0;font-size:17px;line-height:1.45">${st.s}</p></div>`,
+      <h1 style="font-size:1.7647rem;margin:6px 0 0">${st.t}</h1>
+      <p class="muted" style="margin:0;font-size:1rem;line-height:1.45">${st.s}</p></div>`,
     dots+(last?`<button class="btn" ${doneAct}>${tourReplay?"Done":"Let’s go"}</button>`:`<button class="btn" data-act="tour" data-i="${i+1}">Next</button>`),
     last?`<button class="link" style="visibility:hidden" tabindex="-1" aria-hidden="true">Skip</button>`:`<button class="link" ${doneAct}>Skip</button>`,
     i>0?[`data-act="tour" data-i="${i-1}"`,"Back"]:(tourReplay?['data-act="tourdone"',"Guide"]:['data-act="fl" data-s="welcome"',"Back"]));
@@ -1176,7 +1176,7 @@ function drawTour(i){
 function openGuide(){
   const sec=(t,body)=>`<div class="section" style="padding-left:4px;margin-top:10px">${t}</div><div class="card glass" style="gap:10px">${body}</div>`;
   const p=t=>`<p class="explain" style="margin:0">${t}</p>`;
-  layer.innerHTML=shellFull(`<h1 style="font-size:32px;margin-top:8px">How Safe works</h1>
+  layer.innerHTML=shellFull(`<h1 style="font-size:1.8824rem;margin-top:8px">How Safe works</h1>
     ${p("Safe is a calm monthly tracker for your savings and investments. You log one check-in a month; Safe turns it into an overview, a history and an honest answer to “am I on track?”.")}
     ${sec("1 · Monthly check-in",`${PV.checkin()}${p("On your check-in day (pick it in Settings → Check-in), enter your income, what you saved and how you split it: stocks (with the portfolio’s current value), cash, property savings, holiday budget and your own goals. Missed a month? Safe asks for the oldest open month first, so there are no gaps.")}`)}
     ${sec("2 · Home",`${PV.home()}${p("Net worth is everything together. Stocks show what you paid in (big) and today’s market value (small), because the value moves every day. Cash shows whether your emergency fund is filled. The savings rate is the share of your income you saved.")}`)}
@@ -1198,7 +1198,7 @@ const TIPS={
   goals:"Tap “On track” to enter your birth year and goal age and see if you’ll reach your goal. Tap any goal to change its target.",
   settings:"Pick your check-in day, currency and reminder here. Goal amounts are changed directly in Goals. Back up regularly: your data lives only on this iPhone. “How Safe works” explains everything."
 };
-function tipCard(k){return `<div class="card glass tip" role="note" style="flex-direction:row;align-items:flex-start;gap:12px;padding:14px 16px"><span style="width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:16px;flex:none">i</span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="font-size:15px;line-height:1.4">${TIPS[k]}</span><button class="link" data-act="tip" data-k="${k}" style="align-self:flex-start;padding:0;font-weight:600">Got it</button></span></div>`;}
+function tipCard(k){return `<div class="card glass tip" role="note" style="flex-direction:row;align-items:flex-start;gap:12px;padding:14px 16px"><span style="width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-weight:800;font-size:0.9412rem;flex:none">i</span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="font-size:0.8824rem;line-height:1.4">${TIPS[k]}</span><button class="link" data-act="tip" data-k="${k}" style="align-self:flex-start;padding:0;font-weight:600">Got it</button></span></div>`;}
 function openFirst(){FL=true;drawFirst("welcome");}
 function drawFirst(step){
   FL=true;
@@ -1206,25 +1206,25 @@ function drawFirst(step){
   if(step==="welcome"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:28px">
       <span style="transform:scale(2.2);margin:34px 0 38px">${appIcon}</span>
-      <h1 style="font-size:34px">Welcome to Safe</h1>
-      <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:300px">Your savings, goals and progress in one calm place.</p></div>
+      <h1 style="font-size:2rem">Welcome to Safe</h1>
+      <p class="muted" style="margin:0;font-size:1rem;line-height:1.4;max-width:300px">Your savings, goals and progress in one calm place.</p></div>
       <div class="list glass" style="margin-top:14px">${featRow(IC.checkin,"Check in once a month","On a day you choose, log what you saved and split it.")}${featRow(IC.goals,"Know if you’re on track","See when you reach your financial goal, in a best, middle and worst case.")}${featRow(ICS.lock,"Your data stays on your iPhone","No account. Backups are files you download and keep.")}</div>`,
       `<button class="btn" data-act="tour" data-i="0">Get started</button>`,"");
   }else if(step==="install"){
-    const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:15px;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:17px;font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
-    layer.innerHTML=shellFull(`<div class="eyebrow" style="margin-top:8px">Install</div><h1 style="font-size:30px">Add Safe to your Home Screen</h1>
-      <p class="muted" style="margin:0;font-size:15px;line-height:1.4">Safe runs like an app from your Home Screen, full screen and offline. iPhone only sends the monthly reminder to apps added there.</p>
+    const n=(k,ic,t,s)=>`<div class="row" style="min-height:72px"><span style="width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--accent);color:#fff;font-size:0.8824rem;font-weight:700;flex:none">${k}</span><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-size:1rem;font-weight:600">${t}</span><span class="muted" style="font-size:0.7647rem;line-height:1.35">${s}</span></span><span style="color:var(--accent);flex:none;display:flex">${ic}</span></div>`;
+    layer.innerHTML=shellFull(`<div class="eyebrow" style="margin-top:8px">Install</div><h1 style="font-size:1.7647rem">Add Safe to your Home Screen</h1>
+      <p class="muted" style="margin:0;font-size:0.8824rem;line-height:1.4">Safe runs like an app from your Home Screen, full screen and offline. iPhone only sends the monthly reminder to apps added there.</p>
       <div class="list glass">${n(1,ICS.share,"Tap Share","The square with the arrow in Safari's toolbar.")}${n(2,ICS.addhome,"Choose “Add to Home Screen”","Scroll down in the menu if you don't see it.")}${n(3,`<span style="transform:scale(.7);display:flex">${appIcon}</span>`,"Open Safe from your Home Screen","Setup continues there.")}</div>
       <p class="note">Important: an app on the Home Screen keeps its own data, separate from Safari. Set Safe up after opening it from the Home Screen, or your numbers stay behind in Safari.</p>`,
       `<div class="btn plain" style="cursor:default" aria-live="polite">Now open Safe from your Home Screen</div>`,`<button class="link" data-act="fl" data-s="demo">Use Safe in the browser instead</button>`,['data-act="fl" data-s="welcome"',"Back"]);
   }else if(step==="notify"){
     layer.innerHTML=shellFull(`<div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:40px">
       <span class="glass" style="width:84px;height:84px;border-radius:28px;display:flex;align-items:center;justify-content:center;color:var(--accent);margin-bottom:14px">${ICS.bell}</span>
-      <h1 style="font-size:30px">Your check-in day</h1>
-      <p class="muted" style="margin:0;font-size:17px;line-height:1.4;max-width:310px">Pick a day that suits you, for example just after your salary arrives. Safe reminds you once a month on that day at 19:00. Nothing else.</p></div>
+      <h1 style="font-size:1.7647rem">Your check-in day</h1>
+      <p class="muted" style="margin:0;font-size:1rem;line-height:1.4;max-width:310px">Pick a day that suits you, for example just after your salary arrives. Safe reminds you once a month on that day at 19:00. Nothing else.</p></div>
       <div class="list glass" style="margin-top:14px">${daySelect("fl-ciday")}</div>
       <p class="note" style="margin-top:-4px">${ciOff()?"Days 1–14 count for the previous month: on the 1st of November you log October.":`You log the month you're in: on ${ciDayN()===0?"the last day":"the "+ordinal(ciDayN())} of October you log October.`} You can change it any time in Settings.</p>
-      <div class="glass" style="display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:22px;margin-top:18px;text-align:left" aria-label="Preview of the notification">${appIcon}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="display:flex;justify-content:space-between;font-size:15px"><b>Safe</b><span class="muted" style="font-size:13px">${ciDayN()===0?"Last day":ordinal(ciDayN())}, 19:00</span></span><span style="font-size:15px;font-weight:600">Time for your monthly check-in</span><span class="muted" style="font-size:15px">Log what you saved ${ciOff()?"last":"this"} month.</span></span></div>`,
+      <div class="glass" style="display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:22px;margin-top:18px;text-align:left" aria-label="Preview of the notification">${appIcon}<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="display:flex;justify-content:space-between;font-size:0.8824rem"><b>Safe</b><span class="muted" style="font-size:0.7647rem">${ciDayN()===0?"Last day":ordinal(ciDayN())}, 19:00</span></span><span style="font-size:0.8824rem;font-weight:600">Time for your monthly check-in</span><span class="muted" style="font-size:0.8824rem">Log what you saved ${ciOff()?"last":"this"} month.</span></span></div>`,
       `<button class="btn" data-act="fl" data-s="ask">Allow reminder</button>`,`<button class="link" data-act="fl" data-s="no">Not now</button>`);
   }
 }
@@ -1268,7 +1268,7 @@ function setupSteps(){
   return st;
 }
 const sel=(id,opts,val,label)=>`<select class="sel" id="${id}" data-su="${id}" aria-label="${label}">${opts.map(o=>`<option value="${o[0]}" ${String(o[0])===String(val)?"selected":""}>${o[1]}</option>`).join("")}</select>`;
-function moneyRow(id,label,val,dot,sub){return `<label class="row" for="${id}">${dot?`<span class="dot" style="background:${dot}"></span>`:""}<span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${sub?"8px 0":"0"}"><span>${label}</span>${sub?`<span class="muted" style="font-size:12px">${sub}</span>`:""}</span><input class="val" id="${id}" inputmode="decimal" value="${val===""||val==null?"":fmt(val)}" placeholder="0" style="width:110px"></label>`;}
+function moneyRow(id,label,val,dot,sub){return `<label class="row" for="${id}">${dot?`<span class="dot" style="background:${dot}"></span>`:""}<span style="flex:1;display:flex;flex-direction:column;gap:1px;padding:${sub?"8px 0":"0"}"><span>${label}</span>${sub?`<span class="muted" style="font-size:0.7059rem">${sub}</span>`:""}</span><input class="val" id="${id}" inputmode="decimal" value="${val===""||val==null?"":fmt(val)}" placeholder="0" style="width:110px"></label>`;}
 function drawSetup(){
   const steps=setupSteps(),s=steps[SU.step],total=Math.max(steps.length-1,1),pct=SU.step/total*100,last=SU.step===steps.length-1;
   const bar=`<div style="height:5px;border-radius:3px;background:var(--track);overflow:hidden"><div style="height:5px;width:${pct}%;background:var(--accent)"></div></div>`;
@@ -1281,13 +1281,13 @@ function drawSetup(){
     const years=[];for(let y=kYM(maxK).y;y>=minY;y--)years.push([y,y]);
     const months=MONTHS.map((n,i)=>[i+1,n]).filter(o=>ym(fy.y,o[0])<=maxK);
     const n=SU.toK-SU.fromK;
-    const yr=y=>{const c=setupMonths(y).length,a=MS[kYM(setupMonths(y)[0]).m-1],z=MS[kYM(setupMonths(y)[c-1]).m-1];return `<div class="row" style="min-height:64px"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${y}</span><span class="muted" style="font-size:13px">${c} month${c===1?"":"s"} · ${a}${c>1?" – "+z:""}${SU.plan[y]==="yearly"?" · as monthly average":""}</span></span><div class="seg" role="group" aria-label="${y} input"><button data-act="plan" data-y="${y}" data-v="months" aria-pressed="${SU.plan[y]==="months"}">Months</button><button data-act="plan" data-y="${y}" data-v="yearly" aria-pressed="${SU.plan[y]==="yearly"}">Yearly</button></div></div>`;};
+    const yr=y=>{const c=setupMonths(y).length,a=MS[kYM(setupMonths(y)[0]).m-1],z=MS[kYM(setupMonths(y)[c-1]).m-1];return `<div class="row" style="min-height:64px"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">${y}</span><span class="muted" style="font-size:0.7647rem">${c} month${c===1?"":"s"} · ${a}${c>1?" – "+z:""}${SU.plan[y]==="yearly"?" · as monthly average":""}</span></span><div class="seg" role="group" aria-label="${y} input"><button data-act="plan" data-y="${y}" data-v="months" aria-pressed="${SU.plan[y]==="months"}">Months</button><button data-act="plan" data-y="${y}" data-v="yearly" aria-pressed="${SU.plan[y]==="yearly"}">Yearly</button></div></div>`;};
     const ys=setupYears(),cnt=steps.filter(x=>x.k==="month").length,yc=steps.filter(x=>x.k==="year").length;
     layer.innerHTML=shellFull(`<div style="height:62px"><div style="transform:scale(1.5);transform-origin:left top;width:40px">${appIcon}</div></div>
-    <div class="eyebrow">${SU.hist?"History":"Set up Safe"}</div><h1 style="font-size:30px">${SU.hist?"Add older months":"Set up your starting point"}</h1>
-    <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${SU.hist?`Your history starts in ${kName(SU.toK)}. Pick how far back to go. Months you already have stay as they are.`:"Start simply with what you have today, or add past months for a longer history."}</p>
-    ${FL?`<div class="list glass"><button class="row" data-act="flrestore" style="border:0;background:transparent;text-align:left;width:100%"><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-weight:600;color:var(--accent)">Restore from a backup</span><span class="muted" style="font-size:13px">Had Safe before? Pick your backup file.</span></span><span style="color:var(--accent)" aria-hidden="true">›</span></button></div>`:""}
-    ${SU.hist?"":(()=>{const opt=(v,t,s)=>`<button class="row" data-act="sumode" data-v="${v}" role="radio" aria-checked="${SU.mode===v}" style="border:0;background:transparent;text-align:left;width:100%;align-items:center"><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-weight:600">${t}</span><span class="muted" style="font-size:13px;line-height:1.35">${s}</span></span><span class="radio${SU.mode===v?" on":""}" aria-hidden="true"></span></button>`;
+    <div class="eyebrow">${SU.hist?"History":"Set up Safe"}</div><h1 style="font-size:1.7647rem">${SU.hist?"Add older months":"Set up your starting point"}</h1>
+    <p class="muted" style="margin:0;font-size:0.8824rem;line-height:1.4">${SU.hist?`Your history starts in ${kName(SU.toK)}. Pick how far back to go. Months you already have stay as they are.`:"Start simply with what you have today, or add past months for a longer history."}</p>
+    ${FL?`<div class="list glass"><button class="row" data-act="flrestore" style="border:0;background:transparent;text-align:left;width:100%"><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-weight:600;color:var(--accent)">Restore from a backup</span><span class="muted" style="font-size:0.7647rem">Had Safe before? Pick your backup file.</span></span><span style="color:var(--accent)" aria-hidden="true">›</span></button></div>`:""}
+    ${SU.hist?"":(()=>{const opt=(v,t,s)=>`<button class="row" data-act="sumode" data-v="${v}" role="radio" aria-checked="${SU.mode===v}" style="border:0;background:transparent;text-align:left;width:100%;align-items:center"><span style="flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 0"><span style="font-weight:600">${t}</span><span class="muted" style="font-size:0.7647rem;line-height:1.35">${s}</span></span><span class="radio${SU.mode===v?" on":""}" aria-hidden="true"></span></button>`;
       return `<div class="section">How do you want to start?</div><div class="list glass" role="radiogroup" aria-label="How do you want to start">${opt("today","Start with today's balances","Enter roughly what you have now. From "+kName(SU.toK)+" on, your check-ins track everything exactly.")}${opt("past","Add past months too","Months or yearly totals with income and split, for a longer history.")}</div>`;})()}
     ${!SU.hist&&SU.mode==="today"?"":`<div class="list glass"><div class="row" style="min-height:52px"><span style="flex:1">Start tracking from</span></div><div class="row" style="min-height:58px;gap:8px">${sel("su-fm",months,fy.m,"Start month")}${sel("su-fy",years,fy.y,"Start year")}</div></div>`}
     ${ys.length?`<div class="section">How do you know each year?</div><div class="list glass">${ys.map(yr).join("")}</div>
@@ -1297,14 +1297,14 @@ function drawSetup(){
   }else if(s.k==="bal"){
     const st=SU.start;
     const today=!SU.hist&&SU.fromK===SU.toK;
-    layer.innerHTML=shellFull(`${bar}<div class="eyebrow">${today?"Your balances today":"Starting balances"}</div><h1 style="font-size:30px">${today?"What you have now":"Before "+kName(SU.fromK)}</h1>
-    <p class="muted" style="margin:0;font-size:15px;line-height:1.4">${today?`A rough overview is fine. From ${kName(SU.toK)} on, your monthly check-ins track income, savings and the split exactly.`:`What you had at the end of ${kName(SU.fromK-1)}. Leave anything you don't have at 0.`}</p>
+    layer.innerHTML=shellFull(`${bar}<div class="eyebrow">${today?"Your balances today":"Starting balances"}</div><h1 style="font-size:1.7647rem">${today?"What you have now":"Before "+kName(SU.fromK)}</h1>
+    <p class="muted" style="margin:0;font-size:0.8824rem;line-height:1.4">${today?`A rough overview is fine. From ${kName(SU.toK)} on, your monthly check-ins track income, savings and the split exactly.`:`What you had at the end of ${kName(SU.fromK-1)}. Leave anything you don't have at 0.`}</p>
     <div class="list glass">${moneyRow("su-bc","Cash savings",st.cash,"var(--cash)")}${moneyRow("su-bv","Stock portfolio value",st.stockValue,"var(--stocks)")}${moneyRow("su-bp","Stocks paid in so far",st.paid,"var(--stocks)","Everything you invested since opening the depot, without gains")}${moneyRow("su-bpr","Property savings",st.property,"var(--prop)")}${moneyRow("su-bh","Holiday budget",st.holiday,"var(--hol)")}</div>
     <p class="note">Not sure what you paid into stocks? Use the portfolio value; gains then start counting from here.</p>
     ${today?(()=>{const sk=SU.since!=null?SU.since:SU.toK-12,sy=kYM(sk),ys=[];for(let y=S.today.y;y>=S.today.y-40;y--)ys.push(y);
       const ms=MONTHS.map((n,i)=>i+1).filter(m=>ym(sy.y,m)<SU.toK);
       return `<div class="section">Saving since</div><div class="list glass"><div class="row" style="min-height:58px;gap:8px"><select class="sel" id="su-sm" aria-label="Saving since, month">${ms.map(m=>`<option value="${m}"${m===sy.m?" selected":""}>${MONTHS[m-1]}</option>`).join("")}</select><select class="sel" id="su-sy" aria-label="Saving since, year">${ys.map(y=>`<option value="${y}"${y===sy.y?" selected":""}>${y}</option>`).join("")}</select></div>
-      <div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:15px">Average saved per month</span><b id="su-avg"></b></div></div>
+      <div class="row" style="min-height:50px"><span class="muted" style="flex:1;font-size:0.8824rem">Average saved per month</span><b id="su-avg"></b></div></div>
       <p class="note">When did you start building these savings? Safe divides what you have by the months since then. This rough average is used for “On track” until your own check-ins replace it; after 12 check-ins only real data counts.</p>`;})():""}`,
     nav(nextLabel()),"",BK);
     suAvg();
@@ -1312,11 +1312,11 @@ function drawSetup(){
     const isY=s.k==="year",v=SU.vals[s.id]&&SU.vals[s.id]!=="skip"?SU.vals[s.id]:guessVals(s);
     const ks=isY?setupMonths(s.y):[s.key],title=isY?(ks.length===12?`${s.y} in total`:`${MS[kYM(ks[0]).m-1]} – ${MS[kYM(ks[ks.length-1]).m-1]} ${s.y}`):kName(s.key);
     const mi=steps.filter(x=>x.k!=="intro"&&x.k!=="bal").indexOf(s)+1,mt=steps.length-2;
-    layer.innerHTML=shellFull(`${bar}<div class="eyebrow">${isY?"Yearly total":"Month"} · ${mi} of ${mt}</div><h1 style="font-size:30px">${title}</h1>
+    layer.innerHTML=shellFull(`${bar}<div class="eyebrow">${isY?"Yearly total":"Month"} · ${mi} of ${mt}</div><h1 style="font-size:1.7647rem">${title}</h1>
     <div class="list glass">${moneyRow("su-inc",isY?"Income in total":"Income",v.income)}${moneyRow("su-sav",isY?"Saved in total":"Amount saved",v.saved)}</div>
-    <div style="display:flex;flex-direction:column;gap:6px;padding:0 2px"><span class="section" style="padding-left:4px;margin:0" id="su-head"></span><div class="split" id="su-bar" aria-hidden="true"></div><span id="su-err" role="alert" style="font-size:13px;font-weight:600;color:var(--bad);padding-left:4px"></span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;padding:0 2px"><span class="section" style="padding-left:4px;margin:0" id="su-head"></span><div class="split" id="su-bar" aria-hidden="true"></div><span id="su-err" role="alert" style="font-size:0.7647rem;font-weight:600;color:var(--bad);padding-left:4px"></span></div>
     <div class="list glass">${moneyRow("su-st","Stocks (paid in)",v.stocks,"var(--stocks)")}${moneyRow("su-pr","Property savings",v.property,"var(--prop)")}${moneyRow("su-ho","Holiday budget",v.holiday,"var(--hol)")}${S.pots.map(pt=>moneyRow("su-pot-"+pt.id,esc(pt.name),(v.pots||{})[pt.id]||0,pt.color)).join("")}
-    <div class="row muted"><span class="dot" style="background:var(--cash)"></span><span style="flex:1">Cash <span style="font-size:13px">· rest, automatic</span></span><span class="num" id="su-cash" style="color:var(--ink)"></span></div></div>
+    <div class="row muted"><span class="dot" style="background:var(--cash)"></span><span style="flex:1">Cash <span style="font-size:0.7647rem">· rest, automatic</span></span><span class="num" id="su-cash" style="color:var(--ink)"></span></div></div>
     <div class="list glass">${moneyRow("su-val",`Stock portfolio value, end of ${MS[kYM(ks[ks.length-1]).m-1]}`,v.stockValue)}</div>
     <p class="note">${isY?`Safe spreads these totals evenly over the ${ks.length} months and shows them as a monthly average.`:"Same as a check-in. A close estimate is fine."}</p>`,
     nav(nextLabel()),isY?"":`<button class="link" data-act="sskip">Don't know this month – skip</button>`,BK);

@@ -4,26 +4,27 @@ html.hs{
   --page:#F2F2F7; --bg:#F2F2F7; --card:#FFFFFF; --card2:#ECECF1;
   --line:rgba(60,60,67,.12); --track:rgba(60,60,67,.12);
   --sheetS:#F2F2F7; --field:#FFFFFF; --fieldb:#FFFFFF;
-  --glowA:#2F6BFF; --glowB:#8A55F7; --glowop:.5;
+  --topC:#C9CDF8; --glow:radial-gradient(70% 45% at 88% 52%,rgba(138,85,247,.32) 0%,transparent 70%),radial-gradient(75% 45% at 8% 50%,rgba(47,107,255,.26) 0%,transparent 70%),linear-gradient(180deg,var(--topC) 0%,color-mix(in srgb,var(--topC) 55%,transparent) 40%,transparent 100%);
 }
 @media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]){
   --page:#000; --bg:#000; --card:#1C1C1E; --card2:#2C2C2E;
   --line:rgba(255,255,255,.1); --track:rgba(255,255,255,.14);
-  --sheetS:#121214; --field:#1C1C1E; --fieldb:#2C2C2E; --glowop:.72;
+  --sheetS:#121214; --field:#1C1C1E; --fieldb:#2C2C2E; --topC:#2A2E8C; --glow:radial-gradient(70% 45% at 88% 52%,rgba(138,85,247,.55) 0%,transparent 70%),radial-gradient(75% 45% at 8% 50%,rgba(47,107,255,.5) 0%,transparent 70%),linear-gradient(180deg,var(--topC) 0%,color-mix(in srgb,var(--topC) 55%,transparent) 40%,transparent 100%);
 }}
 html.hs[data-theme="dark"]{
   --page:#000; --bg:#000; --card:#1C1C1E; --card2:#2C2C2E;
   --line:rgba(255,255,255,.1); --track:rgba(255,255,255,.14);
-  --sheetS:#121214; --field:#1C1C1E; --fieldb:#2C2C2E; --glowop:.72;
+  --sheetS:#121214; --field:#1C1C1E; --fieldb:#2C2C2E; --topC:#2A2E8C; --glow:radial-gradient(70% 45% at 88% 52%,rgba(138,85,247,.55) 0%,transparent 70%),radial-gradient(75% 45% at 8% 50%,rgba(47,107,255,.5) 0%,transparent 70%),linear-gradient(180deg,var(--topC) 0%,color-mix(in srgb,var(--topC) 55%,transparent) 40%,transparent 100%);
 }
 /* no wallpaper */
 html.hs .orb{display:none}
 html.hs .wall{background:var(--bg)}
 /* glow at the top of each page that scrolls away with the title */
 html.hs .screen{isolation:isolate}
-html.hs .screen::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;z-index:-1;pointer-events:none;opacity:var(--glowop);
-  background:radial-gradient(110% 85% at 90% 0%,var(--glowB) 0%,transparent 62%),radial-gradient(120% 95% at 0% 0%,var(--glowA) 0%,transparent 66%);
+html.hs .screen::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;z-index:-1;pointer-events:none;background:var(--glow);
   -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 30%,transparent 100%)}
+/* the strip behind the clock shows the same glow, so the colour runs up to the top edge instead of being cut off */
+html.hs .topedge::after{background:var(--glow),var(--bg);background-size:100% 420px;background-repeat:no-repeat}
 html.hs .topfade{display:none}
 /* solid cards instead of glass, inside pages and sheets */
 html.hs .screen .glass:not(.backbtn):not(.xbtn),html.hs .sheet .glass:not(.xbtn),html.hs .full .glass:not(.backbtn):not(.xbtn){
@@ -48,30 +49,39 @@ html.hs .full{background:var(--bg)}
 .ptop::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,var(--bg) 55%,color-mix(in srgb,var(--bg) 0%,transparent));opacity:0;transition:opacity .2s}
 .dpage.scrolled .ptop::before{opacity:1}
 .ptop .backbtn{position:static;width:44px;height:44px;min-height:44px}
-.ptitle{text-align:center;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptitle{text-align:center;font-size:1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rbtn{width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink);border:1px solid var(--line);cursor:pointer}
 .pscroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:calc(env(safe-area-inset-top,0px) + 62px) 16px calc(env(safe-area-inset-bottom,0px) + 110px);display:flex;flex-direction:column;gap:10px}
 .pscroll>*{flex-shrink:0}
 .pseg{display:flex;background:var(--card);border-radius:20px;padding:3px;margin:4px 0 8px}
-.pseg button{flex:1;border:0;background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:600;padding:8px 0;border-radius:17px;cursor:pointer}
+.pseg button{flex:1;border:0;background:transparent;color:var(--ink);font:inherit;font-size:0.8824rem;font-weight:600;padding:8px 0;border-radius:17px;cursor:pointer}
 .pseg button[aria-selected="true"]{background:var(--card2);box-shadow:0 1px 4px rgba(0,0,0,.12)}
-.pcap{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--soft)}
-.pbig{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-top:2px}
-.psub{font-size:15px;font-weight:600;color:var(--soft);margin-top:2px}
+.pcap{font-size:0.7647rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--soft)}
+.pbig{font-size:2.3529rem;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-top:2px}
+.psub{font-size:0.8824rem;font-weight:600;color:var(--soft);margin-top:2px}
 .pchart{margin:8px 0 4px}.pchart svg{display:block;overflow:visible}
-.ph2{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:18px 4px 2px}
+.ph2{font-size:1.2941rem;font-weight:700;letter-spacing:-.01em;margin:18px 4px 2px}
 .hlcard{background:var(--card);border-radius:24px;padding:16px 18px}
-.hlk{font-size:15px;font-weight:600;margin-bottom:6px}
-.hlcard p{margin:0;font-size:17px;font-weight:600;line-height:1.35}
-.hlcmp{display:flex;gap:28px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;font-weight:600;color:var(--soft)}
-.hlcmp b{display:block;font-size:22px;margin-top:2px;letter-spacing:-.01em}
+.hlk{font-size:0.8824rem;font-weight:600;margin-bottom:6px}
+.hlcard p{margin:0;font-size:1rem;font-weight:600;line-height:1.35}
+.hlcmp{display:flex;gap:28px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:0.7647rem;font-weight:600;color:var(--soft)}
+.hlcmp b{display:block;font-size:1.2941rem;margin-top:2px;letter-spacing:-.01em}
 .hlcmp div:first-child b{color:inherit}
 .pdetails{display:flex;flex-direction:column;gap:10px}
 .pdetails .field{background:var(--card);border:0;border-radius:24px}
-.pdetails .big{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.pdetails .big{font-size:2rem;font-weight:700;letter-spacing:-.02em}
 .pact{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 /* the page header already shows this number */
 .dpage[data-k="nw"] .pdetails>.big,.dpage[data-k="cat"] .pdetails>.big,.dpage[data-k="pot"] .pdetails>.big,.dpage[data-k="hol"] .pdetails>.big{display:none}
 /* fallbacks when the old glass look is chosen */
 :root{--card:rgba(255,255,255,.72);--card2:rgba(11,16,32,.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:rgba(255,255,255,.08);--card2:rgba(255,255,255,.16)}}
+
+/* v1.11.1: one colour (--topC) at the very top everywhere, so the strip behind the clock (theme colour) and the page meet without a cut */
+html.hs .screen::before{-webkit-mask-image:none;mask-image:none}
+html.hs .navbar::before{background:linear-gradient(180deg,var(--topC) 0,var(--topC) calc(var(--st) + 2px),color-mix(in srgb,var(--bg) 82%,transparent) 70%,color-mix(in srgb,var(--bg) 45%,transparent) 100%)}
+html.hs .dpage{background:linear-gradient(180deg,var(--topC) 0,color-mix(in srgb,var(--topC) 35%,var(--bg)) 60px,var(--bg) 220px) top/100% 220px no-repeat,var(--bg)}
+html.hs .ptop::before{background:linear-gradient(180deg,var(--topC) 0,color-mix(in srgb,var(--topC) 30%,var(--bg)) 40%,var(--bg) 75%,color-mix(in srgb,var(--bg) 0%,transparent))}
+html.hs .full{background:linear-gradient(180deg,var(--topC) 0,var(--bg) 220px) top/100% 220px no-repeat,var(--bg)}
+html.hs .full::after{background:var(--topC)}
+html.hs .full>.wall{display:none}
