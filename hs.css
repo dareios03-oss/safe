@@ -124,3 +124,17 @@ html.hs .nav-t{color:var(--ink)}
 @media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]) .nav-t{color:#fff}}
 html.hs[data-theme="dark"] .nav-t{color:#fff}
 html.hs .navbar::before{background:linear-gradient(180deg,color-mix(in srgb,var(--topC) 82%,transparent) 0,color-mix(in srgb,var(--topC) 62%,transparent) 100%);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}
+
+/* v1.12.4: iOS draws its own soft blur over the top strip of Home Screen apps (below the clock).
+   It leaves fixed, opaque bars alone, and the title now sits lower, below that strip. */
+html.hs{--mixA:color-mix(in srgb,var(--topC) 42%,var(--bg))}
+html.hs .navbar{position:fixed;height:calc(var(--st) + 68px)}
+html.hs .frame.demo>.navbar{height:calc(var(--st) + 68px)}
+html.hs .navbar::before{background:linear-gradient(180deg,var(--topC) 0,var(--mixA) 100%);background-color:var(--topC);-webkit-backdrop-filter:none;backdrop-filter:none}
+html.hs .nav-t,html.hs .frame.demo>.navbar .nav-t{top:calc(var(--st) + 22px)}
+/* detail pages: same opaque bar, title and back button lower */
+html.hs .dpage{--ph:calc(var(--st) + 76px);background:linear-gradient(180deg,var(--topC) 0,var(--mixA) var(--ph),var(--bg) calc(var(--ph) + 140px)) top/100% calc(var(--ph) + 140px) no-repeat,var(--bg)}
+html.hs .ptop{position:fixed;height:var(--ph);box-sizing:border-box;padding-top:calc(var(--st) + 24px);background:linear-gradient(180deg,var(--topC) 0,var(--mixA) 100%);background-color:var(--topC)}
+html.hs .ptop::before{display:none}
+html.hs .dpage.scrolled .ptop{box-shadow:0 .5px 0 rgba(255,255,255,.14)}
+html.hs .pscroll{padding-top:calc(var(--st) + 86px)}
