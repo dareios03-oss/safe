@@ -138,3 +138,12 @@ html.hs .ptop{position:fixed;height:var(--ph);box-sizing:border-box;padding-top:
 html.hs .ptop::before{display:none}
 html.hs .dpage.scrolled .ptop{box-shadow:0 .5px 0 rgba(255,255,255,.14)}
 html.hs .pscroll{padding-top:calc(var(--st) + 86px)}
+
+/* v1.12.5: main pages start 24pt lower so the big page titles sit below iOS's blurred strip (like Health's "Summary") */
+@media (max-width:500px),(display-mode: standalone){
+  html.hs .screen{padding-top:calc(env(safe-area-inset-top,0px) + 40px)}
+  html.hs .frame.demo .screen{padding-top:calc(env(safe-area-inset-top,0px) + 74px)}
+  html.hs .demotag{top:calc(env(safe-area-inset-top,0px) + 36px)}
+}
+html.hs .frame{--bandH:300px}
+html.hs .frame.demo{--bandH:334px}
