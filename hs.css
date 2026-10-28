@@ -85,3 +85,10 @@ html.hs .ptop::before{background:linear-gradient(180deg,var(--topC) 0,color-mix(
 html.hs .full{background:linear-gradient(180deg,var(--topC) 0,var(--bg) 220px) top/100% 220px no-repeat,var(--bg)}
 html.hs .full::after{background:var(--topC)}
 html.hs .full>.wall{display:none}
+
+/* v1.11.3: Health-like colour band: one smooth vertical blend (no blobs) that runs down behind the first card and fades out across it */
+html.hs{--glow:linear-gradient(180deg,var(--topC) 0px,#B9B6F2 110px,#CFC6F2 190px,color-mix(in srgb,#DCD6F3 60%,var(--bg)) 250px,var(--bg) 310px)}
+@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]){--glow:linear-gradient(180deg,var(--topC) 0px,#33298A 110px,#2C2266 180px,#191540 240px,#09081A 285px,var(--bg) 310px)}}
+html.hs[data-theme="dark"]{--glow:linear-gradient(180deg,var(--topC) 0px,#33298A 110px,#2C2266 180px,#191540 240px,#09081A 285px,var(--bg) 310px)}
+html.hs .screen::before{height:310px}
+html.hs .topedge::after{background-size:100% 310px}
