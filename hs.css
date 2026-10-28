@@ -87,8 +87,13 @@ html.hs .full::after{background:var(--topC)}
 html.hs .full>.wall{display:none}
 
 /* v1.11.3: Health-like colour band: one smooth vertical blend (no blobs) that runs down behind the first card and fades out across it */
-html.hs{--glow:linear-gradient(180deg,var(--topC) 0px,#B9B6F2 110px,#CFC6F2 190px,color-mix(in srgb,#DCD6F3 60%,var(--bg)) 250px,var(--bg) 310px)}
-@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]){--glow:linear-gradient(180deg,var(--topC) 0px,#33298A 110px,#2C2266 180px,#191540 240px,#09081A 285px,var(--bg) 310px)}}
-html.hs[data-theme="dark"]{--glow:linear-gradient(180deg,var(--topC) 0px,#33298A 110px,#2C2266 180px,#191540 240px,#09081A 285px,var(--bg) 310px)}
+html.hs{--glow:linear-gradient(180deg,var(--topC) 0%,#B9B6F2 35%,#CFC6F2 61%,color-mix(in srgb,#DCD6F3 60%,var(--bg)) 81%,var(--bg) 100%)}
+@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]){--glow:linear-gradient(180deg,var(--topC) 0%,#33298A 35%,#2C2266 58%,#191540 77%,#09081A 92%,var(--bg) 100%)}}
+html.hs[data-theme="dark"]{--glow:linear-gradient(180deg,var(--topC) 0%,#33298A 35%,#2C2266 58%,#191540 77%,#09081A 92%,var(--bg) 100%)}
 html.hs .screen::before{height:310px}
 html.hs .topedge::after{background-size:100% 310px}
+/* v1.11.4: without the Demo/Start setup row the content sits 34px higher, so the band ends 34px higher too */
+html.hs .frame{--bandH:276px}
+html.hs .frame.demo{--bandH:310px}
+html.hs .screen::before{height:var(--bandH);background-size:100% 100%}
+html.hs .topedge::after{background-size:100% var(--bandH)}
