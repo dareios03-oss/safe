@@ -22,8 +22,8 @@
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="hs.css">
 <script>
-/* design preview switch: ?style=health turns the Health style on, ?style=glass turns it off (remembered on this device) */
-(function(){try{var q=new URLSearchParams(location.search).get("style");if(q)localStorage.setItem("safe-style",q);if(localStorage.getItem("safe-style")==="health"){document.documentElement.classList.add("hs");window.__tc&&window.__tc();}}catch(e){}})();
+/* design preview switch: Health style is the default; ?style=glass brings back the old glass look, ?style=health returns (remembered on this device) */
+(function(){try{var q=new URLSearchParams(location.search).get("style");if(q)localStorage.setItem("safe-style",q);if(localStorage.getItem("safe-style")!=="glass"){document.documentElement.classList.add("hs");window.__tc&&window.__tc();}}catch(e){}})();
 </script>
 </head>
 <body>
