@@ -97,3 +97,18 @@ html.hs .frame{--bandH:276px}
 html.hs .frame.demo{--bandH:310px}
 html.hs .screen::before{height:var(--bandH);background-size:100% 100%}
 html.hs .topedge::after{background-size:100% var(--bandH)}
+
+/* v1.12.0: Safe runs under the status bar (black-translucent), like Health. The clock is always white,
+   so the very top is always coloured: a stronger blue-violet in light mode too. */
+html.hs{--topC:#5560D6;--barC:color-mix(in srgb,#8C88E6 82%,transparent)}
+html.hs{--glow:linear-gradient(180deg,var(--topC) 0%,#7E7FE0 22%,#A9A6EE 45%,#CFC9F3 66%,color-mix(in srgb,#DCD6F3 55%,var(--bg)) 84%,var(--bg) 100%)}
+@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]){--barC:color-mix(in srgb,#2E2675 84%,transparent)}}
+html.hs[data-theme="dark"]{--barC:color-mix(in srgb,#2E2675 84%,transparent)}
+/* compact title bar when scrolled: keeps the colour like Health, frosted, page name larger and centred under the clock */
+html.hs .navbar{height:calc(var(--st) + 46px)}
+html.hs .frame.demo>.navbar{height:calc(var(--st) + 46px)}
+html.hs .navbar::before{background:linear-gradient(180deg,var(--topC) 0,color-mix(in srgb,var(--topC) 70%,var(--barC)) var(--st),var(--barC) 100%);-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
+html.hs .nav-t,html.hs .frame.demo>.navbar .nav-t{top:calc(var(--st) + 1px);height:42px;font-size:1.12rem;font-weight:700}
+@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]) .nav-t{color:#fff}}
+/* demo row hides under the bar once scrolled */
+html.hs .navon>.demotag{opacity:0;transition:opacity .2s}
