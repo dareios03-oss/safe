@@ -9,7 +9,7 @@ const parse=s=>{const v=parseFloat(String(s).replace(/[^0-9.\-]/g,""));return is
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const POTCOL=["#E0457B","#2DA44E","#6C63FF","#B7791F","#0EA5E9"];
 
-const VERSION="1.10.0";
+const VERSION="1.11.0";
 
 /* ---------- state ---------- */
 function emptyData(){return {months:[],start:{cash:0,property:0,holiday:0,stockValue:0,paid:0},pots:[],nextGoal:0,oneoffs:[],assets:[]};}
@@ -117,7 +117,7 @@ function propCalc(b){
   return {e,pp,reserve,usable,byEq,byInc,inc,incAuto,manualInc:pp.income>0,rate,max,limit,need:max*e,cost:max*rate/12};
 }
 function propRow(b){const p=propCalc(b);
-  return `<button class="card glass" data-act="tab" data-tab="goals" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left" aria-label="First property, open Goals"><span style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span class="muted" style="font-size:13px">First property · can buy up to</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(p.max)}</span></span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`;}
+  return `<button class="card glass" data-act="info" data-k="prop" style="flex-direction:row;align-items:center;gap:12px;padding:14px 18px;text-align:left" aria-label="First property details"><span style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--warnbg);color:var(--prop);flex:none">${IC.house}</span><span style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0"><span class="muted" style="font-size:13px">First property · can buy up to</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(p.max)}</span></span><span style="color:var(--accent);font-weight:600;font-size:20px" aria-hidden="true">›</span></button>`;}
 function propCard(b){
   const p=propCalc(b),top=Math.max(p.byEq,p.byInc,1);
   const bar=(label,v,on)=>`<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;justify-content:space-between;font-size:13px"><span class="muted">${label}</span><span class="num" style="${on?"color:var(--ink)":"color:var(--muted)"}">${p.inc||label.indexOf("income")<0?chf(v):"no income yet"}</span></div><span style="height:7px;border-radius:4px;background:var(--track);overflow:hidden"><span style="display:block;height:7px;width:${Math.min(v/top*100,100)}%;background:${on?"var(--prop)":"var(--soft)"};opacity:${on?1:.45}"></span></span></div>`;
@@ -144,7 +144,7 @@ function wireOnTrack(){
   const res=document.getElementById("ot-res");if(!res)return;
   const draw=()=>{const o=onTrack();res.innerHTML=o.by?`${onTrackChart(o)}<div class="field" style="margin-top:8px">${[["Best case",o.cases.best.end,"var(--goodline)"],["Middle case",o.cases.mid.end,"var(--accent)"],["Worst case",o.cases.worst.end,"var(--prop)"]].map(x=>`<div class="kv"><span class="muted">${x[0]} at ${S.fiAge}</span><b style="color:${x[2]}">${chf(x[1])}</b></div>`).join("")}<div class="kv"><span class="muted">of that paid in by you</span><b>${chf(o.cases.mid.paidEnd)}</b></div><div class="kv"><span class="muted">of that growth (middle case)</span><b>${chf(o.cases.mid.end-o.cases.mid.paidEnd)}</b></div><div class="kv"><span class="muted">Goal</span><b>${chf(S.fi)}</b></div>${o.status==="behind"?`<div class="kv"><span class="muted">Extra into stocks to reach it (middle case)</span><b>${chf(o.extra)}/month</b></div>`:""}</div>`:`<p class="explain">Enter your birth year below to see the projection.</p>`;};
   draw();
-  const sh=res.closest(".sheet");
+  const sh=res.closest(".sheet,.dpage");
   sh.addEventListener("input",e=>{const id=e.target.dataset.ot;if(!id)return;const v=parse(e.target.value);
     if(id==="birthYear"){S.birthYear=v>1900&&v<=S.today.y?v:0;}else if(id==="fiAge"){if(v>=18&&v<=100)S.fiAge=v;}else if(id==="chartAge"){if(v>=18&&v<=100)S.chartAge=v;}else if(id==="fi"){if(v>0)S.fi=v;}else{S.ot=Object.assign({best:8,mid:5,worst:2},S.ot||{});if(v>=-20&&v<=30)S.ot[id]=v;}
     persist();draw();});
@@ -152,7 +152,7 @@ function wireOnTrack(){
 }
 function wireProp(){
   const res=document.getElementById("pp-res");if(!res)return;res.innerHTML=propResults();
-  const sh=res.closest(".sheet");
+  const sh=res.closest(".sheet,.dpage");
   sh.addEventListener("input",e=>{const id=e.target.dataset.pp;if(!id)return;const v=parse(e.target.value);
     if(id==="eq"){if(v>0&&v<=100)S.equity=v;}else if(id==="reserve"){S.reserve=Math.max(v,0);}
     else{S.pp=Object.assign({},PPDEF,S.pp||{});if(id==="income")S.pp.income=e.target.value.trim()===""?0:Math.max(v,0);else if(v>=0)S.pp[id]=v;}
@@ -280,7 +280,7 @@ function home(){
   </section>
   ${homeTrack(b)}
   <div style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px">
-    <button class="card glass" data-act="tab" data-tab="history" style="text-align:left;flex-direction:row;align-items:center;gap:10px;padding:16px">
+    <button class="card glass" data-act="info" data-k="rate" style="text-align:left;flex-direction:row;align-items:center;gap:10px;padding:16px">
       <svg width="58" height="58" viewBox="0 0 60 60" aria-hidden="true" style="flex:none"><circle cx="30" cy="30" r="25" fill="none" stroke="var(--track)" stroke-width="7"/><circle cx="30" cy="30" r="25" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${dash} ${circ}" transform="rotate(-90 30 30)"/><text x="30" y="35" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${Math.round(rate)}%</text></svg>
       <span style="flex:1;display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:600">Savings rate</span><span class="muted" style="font-size:13px">avg ${Math.round(avg)}%</span></span>
       ${l6.length?`<span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;flex:none;padding-left:12px;border-left:1px solid var(--line)"><span class="muted" style="font-size:12px">Avg per month</span><span style="font-size:20px;font-weight:700;letter-spacing:-.01em">${chf(l6.reduce((s,x)=>s+x.saved,0)/l6.length)}</span><span class="muted" style="font-size:12px">saved of ${fmt(l6.reduce((s,x)=>s+x.income,0)/l6.length)}</span></span>`:""}
@@ -299,7 +299,7 @@ function homeTrack(b){
   const st={on:["good","On track"],ahead:["good","Ahead"],behind:["warn","Behind"]}[o.status];
   const foot=good?(early>=1?`You'd reach your goal <b>${early} year${early===1?"":"s"} early</b> at ${fmtPct(o.ot.mid)}.`:`Right on schedule at ${fmtPct(o.ot.mid)}.`)
     :`<b>+${chf(o.extra)}/month</b> into stocks closes the gap${reachAge!=null?` · otherwise goal reached at <b>${reachAge}</b>`:""}`;
-  return `<section class="card glass" data-act="tab" data-tab="goals" role="button" tabindex="0" aria-label="On track details" style="gap:10px">
+  return `<section class="card glass" data-act="info" data-k="ontrack" role="button" tabindex="0" aria-label="On track details" style="gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:17px;font-weight:600">On track by age ${S.fiAge}?</span><span class="pill ${st[0]}">${st[1]}</span></div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:30px;font-weight:700;letter-spacing:-.02em">${chf(Math.round(end/1000)*1000)}</span><span class="muted" style="font-size:13px">at ${S.fiAge} · goal ${kfmt(goal)}</span></div>
     <div style="position:relative;height:10px;border-radius:5px;background:var(--track)" aria-hidden="true">
@@ -489,7 +489,7 @@ function last6(fn){const n=S.months.length,from=Math.max(0,n-6),v=[],l=[];for(le
 function avgOf(key,n){const xs=S.months.slice(-n);return xs.length?xs.reduce((a,r)=>a+r[key],0)/xs.length:0;}
 function monthsTo(rest,per){if(rest<=0)return "already reached";if(per<=0)return "not at the current pace";const n=Math.ceil(rest/per),r=cur()||blank(),tot=r.y*12+(r.m-1)+n;return `about ${n} month${n===1?"":"s"} (${MONTHS[tot%12]} ${Math.floor(tot/12)})`;}
 let lastInfo=null;
-function openInfo(k,a){
+function openInfo(k,a,replace){
   if(k==="asset"){openAssetSheet(a);return;}
   if(k==="oneoff"){openOneoffSheet(a);return;}
   lastInfo={k,a};
@@ -503,7 +503,7 @@ function openInfo(k,a){
     title="Net worth";
     body=`<span class="big">${chf(b.nw)}</span>
     ${kv([["Saved in "+MONTHS[r.m-1],sign(r.saved),col(r.saved)],["Market gain on stocks",sign(mGain),col(mGain)],["Change this month",sign(b.nw-p.nw),col(b.nw-p.nw)]])}
-    <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,"var(--accent)",h.v.length-1)}
+    
     ${oneoffList()}
     <p class="explain">Net worth adds up cash, the current value of your stocks, property savings, the holiday budget, your goals and owned property (value minus mortgage). Financial goal progress leaves out the holiday budget, goals you plan to spend and property you didn’t switch on.</p>`;
     action=`<button class="btn" data-act="addoneoff">One-off amount</button><button class="link" data-act="addasset" style="font-size:17px;min-height:48px">Add owned property</button>`;
@@ -517,7 +517,7 @@ function openInfo(k,a){
     if(a==="property"){extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.property)],["Equity share",S.equity+"%"],["Can buy up to",chf(propCalc(b).max)]]);text=`This is your equity for a first property. At ${S.equity}% equity, every ${CUR()} 1 saved lets you buy ${CUR()} ${fmt(100/S.equity)} of property.`;action=`<button class="btn" data-act="info" data-k="prop">How the property calculation works</button>`;}
     if(a==="holiday"){const per=avgOf("holiday",6);extra=kv([["Added in "+MONTHS[r.m-1],"+"+fmt(r.holiday)],["Target",chf(S.holidayTarget)],["Still to go",chf(Math.max(S.holidayTarget-b.holiday,0))],["Reached in",monthsTo(S.holidayTarget-b.holiday,per)]]);text="Not in the financial goal: the holiday budget counts in your net worth, but not in financial goal progress, because it's money you plan to spend. Change the target in Settings.";}
     body=`<span class="big">${chf(C[2])}</span><span class="pill ${C[3]>=0?"good":"warn"}">${C[3]>=0?"▲":"▼"} ${chf(Math.abs(C[3]))} this month</span>
-    <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,`var(${C[1]})`,h.v.length-1)}${extra}<p class="explain">${text}</p>`;
+    ${extra}<p class="explain">${text}</p>`;
   }else if(k==="goalm"){
     const xs=S.months.filter(x=>x.goal).slice(-6),hit=xs.filter(x=>x.saved>=x.goal).length;
     title="Monthly savings goal";
@@ -589,7 +589,7 @@ function openInfo(k,a){
     const v=b.pots[pt.id]||0,h=last6(j=>bal(j).pots[pt.id]||0),xs=S.months.slice(-6),per=xs.length?xs.reduce((s,x)=>s+((x.pots||{})[pt.id]||0),0)/xs.length:0;
     title=esc(pt.name);
     body=`<span class="big">${chf(v)}</span><span class="muted">of ${chf(pt.target)} target</span>
-    <div class="section" style="padding-left:4px">Last 6 months</div>${mini(h.v,h.l,pt.color,h.v.length-1)}
+    
     ${kv([["Still to go",chf(Math.max(pt.target-v,0))],["Avg added / month (6 mo.)",chf(per)],["Target reached in",monthsTo(pt.target-v,per)],["Counts toward financial goal",pt.fi?"Yes":"No"]])}
     <p class="explain">${pt.fi?"This goal counts toward your financial goal because the money stays yours long term.":"Not in the financial goal: it counts in your net worth, but not in financial goal progress, because you plan to spend it."} You put money in it with its own line in the check-in; that amount comes out of cash.</p>`;
     action=`<button class="btn" data-act="goaledit" data-a="${pt.id}">Edit goal</button><button class="link" data-act="delpot" data-a="${pt.id}" style="color:var(--bad);font-size:17px;min-height:48px">Delete goal</button>`;
@@ -598,6 +598,13 @@ function openInfo(k,a){
     title="Late check-in";
     body=`${kv([["Open months",n+" ("+MS[dm.m-1]+" – "+MS[refK()%12]+")"],["Next to log",MONTHS[dm.m-1]+" "+dm.y],["Goal for "+MONTHS[dm.m-1],chf(S.nextGoal)]])}
     <p class="explain">Safe always asks for the oldest missing month first, so your history has no gaps. Enter what you saved in ${MONTHS[dm.m-1]} and your portfolio value at the end of ${MONTHS[dm.m-1]}. A close estimate is fine. Right after saving, the next open month is offered.</p>`;
+  }else if(k==="rate"){
+    const xs=S.months.slice(-6),inc=xs.reduce((s,x)=>s+x.income,0),sv=xs.reduce((s,x)=>s+x.saved,0),all=S.months,ai=all.reduce((s,x)=>s+x.income,0),as=all.reduce((s,x)=>s+x.saved,0);
+    title="Savings rate";
+    body=`<div class="section" style="padding-left:4px">${MONTHS[r.m-1]} ${r.y}</div>${kv([["Saved",chf(r.saved)],["Income",chf(r.income)],["Savings rate",r.income?Math.round(r.saved/r.income*100)+"%":"–"]])}
+    <div class="section" style="padding-left:4px">Last ${xs.length} months</div>${kv([["Avg saved / month",chf(xs.length?sv/xs.length:0)],["Avg income / month",chf(xs.length?inc/xs.length:0)],["Savings rate",inc?Math.round(sv/inc*100)+"%":"–"]])}
+    ${all.length>xs.length?`<div class="section" style="padding-left:4px">Since you started</div>${kv([["Months",String(all.length)],["Saved in total",chf(as)],["Savings rate",ai?Math.round(as/ai*100)+"%":"–"]])}`:""}
+    <p class="explain">Savings rate is what you saved divided by your income in the same months. History shows it for every quarter and year.</p>`;
   }else if(k==="cur"){
     title="Currency";
     body=`<p class="explain">Choose CHF, EUR or USD in Settings. Only the label changes: your amounts are not converted.</p>`;
@@ -608,6 +615,7 @@ function openInfo(k,a){
     title="About Safe";
     body=`${kv([["Version",VERSION],["Months stored",String(S.months.length)],["Last backup",backupLabel()]])}<p class="explain">Safe keeps everything on this iPhone and works offline. Back up regularly: if the app is deleted, the data is gone unless you have a backup file.</p>`;
   }
+  if(PAGEK.has(k)){openPage(k,a,title,body,action,replace);if(k==="prop")wireProp();if(k==="ontrack")wireOnTrack();return;}
   const html=`<div class="scrim" data-act="close"></div><div class="sheet info" role="dialog" aria-modal="true" aria-labelledby="in-t">
   <div class="inner"><div class="shead" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="in-t" style="margin:0;font-size:22px;font-weight:700">${title}</h2>${XB}</div>${body}${action}</div></div>`;
   if(layer.querySelector(".full")){layer.insertAdjacentHTML("beforeend",html);}else{layer.innerHTML=html;sheetDirty=false;}
@@ -616,8 +624,98 @@ function openInfo(k,a){
   if(k==="ontrack")wireOnTrack();
 }
 
+
+/* ---------- detail pages (Health style): slide in from the right, back button, chart with period switch, highlights, then all details ---------- */
+const PAGEK=new Set(["nw","cat","goalm","fi","prop","ontrack","hol","emer","pot","split","hsum","about","rate"]);
+const PGS={span:12};
+function pageSeries(k,a){
+  const pt=k==="pot"?S.pots.find(x=>x.id===a):null;
+  const C={cash:["Cash savings","var(--cash)",j=>bal(j).cash],stocks:["Stocks · value","var(--stocks)",j=>bal(j).value],property:["Property savings","var(--prop)",j=>bal(j).property],holiday:["Holiday budget","var(--hol)",j=>bal(j).holiday]};
+  if(k==="nw")return {t:"bal",cap:"Net worth",col:"var(--accent)",f:j=>bal(j).nw};
+  if(k==="cat"&&C[a])return {t:"bal",cap:C[a][0],col:C[a][1],f:C[a][2]};
+  if(k==="pot"&&pt)return {t:"bal",cap:pt.name,col:pt.color,f:j=>bal(j).pots[pt.id]||0,goal:pt.target};
+  if(k==="hol")return {t:"bal",cap:"Holiday budget",col:"var(--hol)",f:j=>bal(j).holiday,goal:S.holidayTarget};
+  if(k==="emer")return {t:"bal",cap:"Cash",col:"var(--cash)",f:j=>bal(j).cash,goal:S.emergency};
+  if(k==="fi")return {t:"bal",cap:"Counted for financial goal",col:"var(--goodline)",f:j=>bal(j).fi};
+  if(k==="goalm")return {t:"avg",cap:"Saved per month",col:"var(--accent)",f:j=>S.months[j].saved,g:j=>S.months[j].goal||0};
+  if(k==="rate")return {t:"pct",cap:"Savings rate",col:"var(--accent)",f:j=>S.months[j].income?S.months[j].saved/S.months[j].income*100:0};
+  return null;
+}
+function pageTop(se){
+  if(!se||S.months.length<1)return "";
+  const sp=[[6,"6M"],[12,"Y"],[36,"3Y"],[0,"All"]];
+  return `<div class="pseg" role="tablist">${sp.map(x=>`<button role="tab" data-act="pspan" data-v="${x[0]}" aria-selected="${PGS.span===x[0]}">${x[1]}</button>`).join("")}</div>
+  <div class="phead"></div><div class="pchart"></div><div class="phl"></div>`;
+}
+function drawPageChart(pg){
+  const se=pageSeries(pg.dataset.k,pg.dataset.a);if(!se||!S.months.length)return;
+  pg.querySelectorAll(".pseg button").forEach(b=>b.setAttribute("aria-selected",String(+b.dataset.v===PGS.span)));
+  const n=S.months.length,from=PGS.span?Math.max(0,n-PGS.span):0,idx=[];for(let j=from;j<n;j++)idx.push(j);
+  const v=idx.map(se.f),last=v[v.length-1],first=v[0],avg=v.reduce((a,b)=>a+b,0)/v.length,rm=j=>S.months[j],mlab=j=>`${MS[rm(j).m-1]} ${rm(j).y}`;
+  const range=idx.length>1?`${mlab(idx[0])} – ${mlab(idx[idx.length-1])}`:mlab(idx[0]);
+  const money=x=>chf(Math.round(x)),pct=x=>Math.round(x)+"%";
+  let cap,big,sub;
+  if(se.t==="bal"){cap=`${se.cap} · ${mlab(idx[idx.length-1])}`;big=money(last);const d=last-first;sub=idx.length>1?`${d>=0?"+":"−"}${chf(Math.abs(Math.round(d)))} since ${mlab(idx[0])}`:range;}
+  else{cap=`${se.cap} · average`;big=se.t==="pct"?pct(avg):money(avg);sub=range;}
+  pg.querySelector(".phead").innerHTML=`<div class="pcap">${esc(cap)}</div><div class="pbig">${big}</div><div class="psub">${sub}</div>`;
+  /* chart */
+  const W=330,H=200,top=Math.max(...v,se.goal||0,1),step=niceStep(top/3),mx=step*Math.ceil(top/step),bw=W/v.length,lab=se.t==="pct"?(x=>Math.round(x)+"%"):(x=>x>=1e6?kfmt(x):x>=1000?(x/1000).toFixed(x%1000?1:0)+"k":String(Math.round(x)));
+  let g="";for(let y=0;y<=mx+1e-9;y+=step){const yy=H-H*y/mx;g+=`<line x1="0" x2="${W}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${W+6}" y="${yy+4}" font-size="11" fill="var(--soft)">${lab(y)}</text>`;}
+  const every=v.length<=12?1:v.length<=36?3:12;
+  v.forEach((x,i)=>{const h=Math.max(H*Math.max(x,0)/mx,x>0?2:0),bx=i*bw+bw*.16,w=Math.max(bw*.68,1.5),j=idx[i];
+    const c=se.g&&se.g(j)?(x>=se.g(j)?"var(--goodline)":se.col):se.col;
+    g+=`<rect x="${bx}" y="${H-h}" width="${w}" height="${h}" rx="${Math.min(3,w/2)}" fill="${c}"${i===v.length-1?"":' opacity=".85"'}/>`;
+    if(i%every===0||(every===1))g+=`<text x="${bx+w/2}" y="${H+16}" font-size="11" text-anchor="middle" fill="var(--soft)">${every===1&&v.length>6?MS[rm(j).m-1][0]:every===12?rm(j).y:MS[rm(j).m-1]+(every>1?" "+String(rm(j).y).slice(2):"")}</text>`;});
+  if(se.t!=="bal"&&v.length>1){const ay=H-H*avg/mx;g+=`<line x1="0" x2="${W}" y1="${ay}" y2="${ay}" stroke="var(--ink)" stroke-opacity=".55" stroke-dasharray="4 4"/>`;}
+  if(se.goal){const gy=H-H*se.goal/mx;g+=`<line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="var(--ink)" stroke-opacity=".55" stroke-dasharray="4 4"/><text x="4" y="${gy-5}" font-size="11" fill="var(--soft)">Target ${kfmt(se.goal)}</text>`;}
+  pg.querySelector(".pchart").innerHTML=`<svg viewBox="0 0 ${W+34} ${H+22}" width="100%" role="img" aria-label="${esc(se.cap)} per month">${g}</svg>`;
+  /* highlights */
+  const L=idx[idx.length-1],ln=MONTHS[rm(L).m-1];let hl=[];
+  if(v.length>=2){
+    if(se.t==="bal"){const d=last-first,per=d/(v.length-1),mxv=Math.max(...v);
+      hl.push({t:`${d>=0?"Up":"Down"} ${chf(Math.abs(Math.round(d)))} in ${v.length-1} month${v.length>2?"s":""}${d>0?`, about ${chf(Math.round(per))} per month`:""}.`,a:[mlab(idx[0]),money(first)],b:[mlab(L),money(last)]});
+      if(last>=mxv&&v.length>2)hl.push({t:`${ln} is the highest it has been in this period.`});
+      if(se.goal&&last<se.goal&&per>0)hl.push({t:`At this pace the target is reached in about ${Math.ceil((se.goal-last)/per)} months.`});}
+    else{const fm=se.t==="pct"?pct:money,more=last>=avg;
+      hl.push({t:`${more?"You saved more":"You saved less"} in ${ln} than your average month${se.t==="pct"?" (as a share of income)":""}.`,a:["Average",fm(avg)],b:[ln,fm(last)]});
+      if(se.g){const w=idx.filter(j=>se.g(j)),hit=w.filter(j=>S.months[j].saved>=se.g(j)).length;if(w.length)hl.push({t:`Goal reached in ${hit} of ${w.length} months.`});}
+      else{const bi=v.indexOf(Math.max(...v));if(v.length>2)hl.push({t:`Best month: ${mlab(idx[bi])} with ${fm(v[bi])}.`});}}
+  }
+  hl=hl.slice(0,2);
+  pg.querySelector(".phl").innerHTML=hl.length?`<h2 class="ph2">Highlights</h2>${hl.map(h=>`<div class="hlcard"><div class="hlk" style="color:${se.col}">${esc(se.cap)}</div><p>${h.t}</p>${h.a?`<div class="hlcmp"><div style="color:${se.col}">${h.b[0]}<b>${h.b[1]}</b></div><div>${h.a[0]}<b>${h.a[1]}</b></div></div>`:""}</div>`).join("")}`:"";
+}
+function niceStep(x){if(x<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(x))),f=x/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p;}
+const BACKSVG='<svg width="11" height="18" viewBox="0 0 13 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5L2.5 10.5 10 18.5"/></svg>';
+function openPage(k,a,title,body,action,replace){
+  const se=pageSeries(k,a),plus=k==="nw"?`<button class="rbtn glass" data-act="addmenu" aria-label="Add">${IC.plus}</button>`:`<span></span>`;
+  const html=`<div class="dpage" role="dialog" aria-modal="true" aria-label="${esc(title)}" data-k="${k}" data-a="${a||""}">
+    <div class="ptop"><button class="backbtn glass" data-act="pageback" aria-label="Back">${BACKSVG}</button><span class="ptitle">${title}</span>${plus}</div>
+    <div class="pscroll">${pageTop(se)}<div class="pdetails">${se&&S.months.length?`<h2 class="ph2">Details</h2>`:""}${body}${action?`<div class="pact">${action}</div>`:""}</div></div></div>`;
+  const pages=layer.querySelectorAll(".dpage"),topPg=pages[pages.length-1];
+  if(replace&&topPg){const y=topPg.querySelector(".pscroll").scrollTop;topPg.insertAdjacentHTML("afterend",html);topPg.remove();const n=layer.querySelectorAll(".dpage");const pg=n[n.length-1];pg.classList.add("noanim");pg.querySelector(".pscroll").scrollTop=y;drawPageChart(pg);return;}
+  [...layer.children].forEach(c=>{if(!c.classList.contains("dpage"))c.remove();});
+  if(topPg)topPg.classList.add("under");
+  layer.insertAdjacentHTML("beforeend",html);
+  const n=layer.querySelectorAll(".dpage"),pg=n[n.length-1];drawPageChart(pg);
+  const sc=pg.querySelector(".pscroll");sc.addEventListener("scroll",()=>pg.classList.toggle("scrolled",sc.scrollTop>8),{passive:true});
+}
+function popPage(){
+  const n=layer.querySelectorAll(".dpage"),pg=n[n.length-1];if(!pg)return;
+  if(n.length>1)n[n.length-2].classList.remove("under");
+  pg.classList.add("leaving");setTimeout(()=>{pg.remove();if(!layer.querySelector(".dpage"))render(true);},260);
+}
+function refreshPage(){const n=layer.querySelectorAll(".dpage"),pg=n[n.length-1];if(!pg)return;
+  if(pg.contains(document.activeElement)&&document.activeElement.matches("input,select"))return;
+  if(pg.dataset.k==="pot"&&!S.pots.find(x=>x.id===pg.dataset.a)){popPage();return;}
+  openInfo(pg.dataset.k,pg.dataset.a||undefined,true);}
+
 /* ---------- render ---------- */
 const scr=document.getElementById("screen"),tabs=document.getElementById("tabs"),layer=document.getElementById("layer");
+/* while a detail page is open, pop-ups open on top of it instead of replacing it */
+(function(){const D=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");
+  Object.defineProperty(layer,"innerHTML",{configurable:true,get(){return D.get.call(this);},set(v){
+    if(v&&this.querySelector(".dpage")&&!/class="full[ "]/.test(v)){[...this.children].forEach(c=>{if(!c.classList.contains("dpage"))c.remove();});this.insertAdjacentHTML("beforeend",v);return;}
+    D.set.call(this,v);}});})();
 /* iOS-style compact title bar: appears with the page name once the big title has scrolled under the top */
 function navSync(sc){if(!sc)return;const host=sc.classList.contains("fscroll")?sc.parentElement:document.getElementById("frame"),nb=host.querySelector(":scope > .navbar");if(!nb)return;
   const h1=sc.querySelector("h1"),t=nb.querySelector(".nav-t"),nbB=nb.getBoundingClientRect().bottom;
@@ -704,7 +802,7 @@ function tbRelease(e,cancel){if(!TB.down)return;const held=e.timeStamp-TB.down.t
   if(cancel){TB.dragging=false;tbTargets();tbKick();return;}
   const i=wasDrag?Math.round((tbClamp(TB.sp.x.t)-5-TB.tw/2)/TB.tw):Math.min(Math.max(Math.floor((tbX(e)-5)/TB.tw),0),TABS.length-1);
   TB.nextGlide=!wasDrag;
-  if(TABS[i][0]!==S.tab){close();S.tab=TABS[i][0];render();}else{TB.dragging=false;tbTargets();tbKick();}}
+  if(TABS[i][0]!==S.tab){closeAll();S.tab=TABS[i][0];render();}else if(layer.querySelector(".dpage")){closeAll();}else{TB.dragging=false;tbTargets();tbKick();}}
 tabs.addEventListener("pointerup",e=>tbRelease(e,false));
 tabs.addEventListener("pointercancel",e=>tbRelease(e,true));
 tabs.addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
@@ -828,7 +926,8 @@ function askDiscard(){
   if(layer.querySelector(".askbox"))return;
   layer.insertAdjacentHTML("beforeend",`<div class="ascrim" data-act="keep"></div><div class="askbox" role="alertdialog" aria-modal="true" aria-label="Discard changes?"><p class="muted" style="margin:6px 0 4px;text-align:center;font-size:13px">Your changes haven't been saved.</p><button class="btn danger" data-act="discard">Discard changes</button><button class="btn" data-act="keep">Keep editing</button></div>`);
 }
-function close(){layer.innerHTML="";FL=false;pending=null;}
+function close(){FL=false;pending=null;if(layer.querySelector(".dpage")&&!layer.querySelector(".full:not(.dpage)")){[...layer.children].forEach(c=>{if(!c.classList.contains("dpage"))c.remove();});refreshPage();return;}layer.innerHTML="";}
+function closeAll(){layer.innerHTML="";FL=false;pending=null;}
 
 /* ---------- confirm dialog ---------- */
 let pending=null;
@@ -1286,7 +1385,9 @@ document.getElementById("frame").addEventListener("click",e=>{
     case "demo": if(!S.demo){enterDemo();render(true);toast(S.setupDone?"Demo mode on · your numbers are hidden":"Demo mode on");}
       else{leaveDemo();render(true);toast(S.setupDone?"Demo mode off · your numbers are back":"Demo mode off");}break;
     case "startsetup": leaveDemo();S.tab="home";render();FL=true;firstDone=false;openSetup();FL=true;break;
-    case "tab": if(Date.now()-tabClickBlock<450)break;close();S.tab=t.dataset.tab;render();break;
+    case "tab": if(Date.now()-tabClickBlock<450)break;closeAll();S.tab=t.dataset.tab;render();break;
+    case "pageback": popPage();break;
+    case "pspan": PGS.span=+t.dataset.v;{const n=layer.querySelectorAll(".dpage");if(n.length)drawPageChart(n[n.length-1]);}break;
     case "sheet": openSheet(null);break;
     case "edit": openSheet(+t.dataset.i);break;
     case "close": if(t.classList.contains("scrim")&&layer.querySelector(".sheet")){dismissSheet();break;}if(layer.querySelector(".full")&&layer.querySelector(".sheet.info")){layer.querySelectorAll(".full ~ .scrim,.sheet.info").forEach(x=>x.remove());break;}close();break;
@@ -1416,8 +1517,8 @@ SafeStore.load().then(st=>{
 });
 /* swipe in from the left edge on full-screen pages = Back */
 let ex=null;
-layer.addEventListener("touchstart",e=>{const t=e.touches[0];ex=(layer.querySelector(".full .backbtn")&&!layer.querySelector(".sheet")&&t.clientX<28)?{x:t.clientX,y:t.clientY}:null;},{passive:true});
-layer.addEventListener("touchend",e=>{if(!ex)return;const t=e.changedTouches[0],dx=t.clientX-ex.x,dy=Math.abs(t.clientY-ex.y);ex=null;if(dx>70&&dy<60){const b=layer.querySelector(".full .backbtn");if(b)b.click();}},{passive:true});
+layer.addEventListener("touchstart",e=>{const t=e.touches[0];ex=((layer.querySelector(".full .backbtn")||layer.querySelector(".dpage"))&&!layer.querySelector(".sheet")&&t.clientX<28)?{x:t.clientX,y:t.clientY}:null;},{passive:true});
+layer.addEventListener("touchend",e=>{if(!ex)return;const t=e.changedTouches[0],dx=t.clientX-ex.x,dy=Math.abs(t.clientY-ex.y);ex=null;if(dx>70&&dy<60){if(layer.querySelector(".dpage")&&!layer.querySelector(".full:not(.dpage)")){popPage();return;}const b=layer.querySelector(".full .backbtn");if(b)b.click();}},{passive:true});
 window.addEventListener("pagehide",()=>persist());
 document.addEventListener("visibilitychange",()=>{if(document.hidden){persist();return;}if(ready){refreshToday();if(!layer.innerHTML)render(true);maybeDue();}});
 })();

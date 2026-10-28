@@ -35,3 +35,43 @@ html.hs .backbtn,html.hs .xbtn{background:color-mix(in srgb,var(--card) 80%,tran
 /* sheets: grouped background, white cards on it */
 html.hs .sheet{background:var(--sheetS);border:1px solid var(--line)}
 html.hs .full{background:var(--bg)}
+
+/* ---------- detail pages ---------- */
+.dpage{position:absolute;inset:0;z-index:6;background:var(--bg);display:flex;flex-direction:column;animation:pin .34s cubic-bezier(.2,.8,.2,1);transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .3s;box-shadow:-10px 0 30px rgba(0,0,0,.12)}
+.dpage.noanim{animation:none}
+.dpage.under{transform:translateX(-22%);opacity:.6}
+.dpage.leaving{transform:translateX(100%)}
+@keyframes pin{from{transform:translateX(100%)}to{transform:none}}
+#frame:has(.dpage)>.tabs{z-index:8}
+#frame:has(.dpage)>.demotag,#frame:has(.dpage)>.navbar,#frame:has(.dpage)>.topedge{visibility:hidden}
+.ptop{position:absolute;left:0;right:0;top:0;z-index:3;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 6px) 16px 8px}
+.ptop::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,var(--bg) 55%,color-mix(in srgb,var(--bg) 0%,transparent));opacity:0;transition:opacity .2s}
+.dpage.scrolled .ptop::before{opacity:1}
+.ptop .backbtn{position:static;width:44px;height:44px;min-height:44px}
+.ptitle{text-align:center;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbtn{width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink);border:1px solid var(--line);cursor:pointer}
+.pscroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:calc(env(safe-area-inset-top,0px) + 62px) 16px calc(env(safe-area-inset-bottom,0px) + 110px);display:flex;flex-direction:column;gap:10px}
+.pscroll>*{flex-shrink:0}
+.pseg{display:flex;background:var(--card);border-radius:20px;padding:3px;margin:4px 0 8px}
+.pseg button{flex:1;border:0;background:transparent;color:var(--ink);font:inherit;font-size:15px;font-weight:600;padding:8px 0;border-radius:17px;cursor:pointer}
+.pseg button[aria-selected="true"]{background:var(--card2);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.pcap{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--soft)}
+.pbig{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin-top:2px}
+.psub{font-size:15px;font-weight:600;color:var(--soft);margin-top:2px}
+.pchart{margin:8px 0 4px}.pchart svg{display:block;overflow:visible}
+.ph2{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:18px 4px 2px}
+.hlcard{background:var(--card);border-radius:24px;padding:16px 18px}
+.hlk{font-size:15px;font-weight:600;margin-bottom:6px}
+.hlcard p{margin:0;font-size:17px;font-weight:600;line-height:1.35}
+.hlcmp{display:flex;gap:28px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;font-weight:600;color:var(--soft)}
+.hlcmp b{display:block;font-size:22px;margin-top:2px;letter-spacing:-.01em}
+.hlcmp div:first-child b{color:inherit}
+.pdetails{display:flex;flex-direction:column;gap:10px}
+.pdetails .field{background:var(--card);border:0;border-radius:24px}
+.pdetails .big{font-size:34px;font-weight:700;letter-spacing:-.02em}
+.pact{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+/* the page header already shows this number */
+.dpage[data-k="nw"] .pdetails>.big,.dpage[data-k="cat"] .pdetails>.big,.dpage[data-k="pot"] .pdetails>.big,.dpage[data-k="hol"] .pdetails>.big{display:none}
+/* fallbacks when the old glass look is chosen */
+:root{--card:rgba(255,255,255,.72);--card2:rgba(11,16,32,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:rgba(255,255,255,.08);--card2:rgba(255,255,255,.16)}}
