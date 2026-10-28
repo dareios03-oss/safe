@@ -112,3 +112,15 @@ html.hs .nav-t,html.hs .frame.demo>.navbar .nav-t{top:calc(var(--st) + 1px);heig
 @media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]) .nav-t{color:#fff}}
 /* demo row hides under the bar once scrolled */
 html.hs .navon>.demotag{opacity:0;transition:opacity .2s}
+
+/* v1.12.1: like Health, the colour band stays where it is and the cards scroll over it;
+   the title bar is see-through and frosted, so the band shows through it */
+html.hs .wall{background:var(--glow) top/100% var(--bandH) no-repeat,var(--bg)}
+html.hs .screen::before{display:none}
+html.hs .topedge::after{background:var(--glow) top/100% var(--bandH) no-repeat,var(--bg)}
+html.hs .navbar::before{background:linear-gradient(180deg,color-mix(in srgb,var(--topC) 55%,transparent) 0,color-mix(in srgb,var(--topC) 28%,transparent) 100%);-webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%)}
+html.hs .navbar::after{background:rgba(255,255,255,.14)}
+html.hs .nav-t{color:var(--ink)}
+@media (prefers-color-scheme:dark){html.hs:not([data-theme="light"]) .nav-t{color:#fff}}
+html.hs[data-theme="dark"] .nav-t{color:#fff}
+html.hs .navbar::before{background:linear-gradient(180deg,color-mix(in srgb,var(--topC) 82%,transparent) 0,color-mix(in srgb,var(--topC) 62%,transparent) 100%);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}
